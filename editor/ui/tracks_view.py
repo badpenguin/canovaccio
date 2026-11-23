@@ -53,6 +53,7 @@ from ..core.key import MAJOR, Key  # noqa: E402
 from ..core.model import Segment, Track, new_id, remap_slurs  # noqa: E402
 from ..core.paste import paste_from_other_song  # noqa: E402
 from ..output.transport import State, Transport  # noqa: E402
+from .keys import PRIMARY_MASK  # noqa: E402
 from . import ruler  # noqa: E402
 from .follow import follow_center  # noqa: E402
 from .icons import themed  # noqa: E402
@@ -315,7 +316,7 @@ class TracksView(Gtk.Box):
         """Rotella: avanti/indietro lungo la timeline; Maiusc+rotella: su/giù
         nell'elenco delle tracce; Ctrl+rotella: zoom."""
         state = ctrl.get_current_event_state()
-        if state & Gdk.ModifierType.CONTROL_MASK:
+        if state & PRIMARY_MASK:
             self.zoom_step(1 if dy < 0 else -1, self._pointer_x)
         elif state & Gdk.ModifierType.SHIFT_MASK:
             vadj = self.scroller.get_vadjustment()

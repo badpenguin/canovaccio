@@ -1,0 +1,4 @@
+# 2026-11-23: script di shell sempre con fine riga LF, anche nel checkout di Windows (build su GitHub Actions
+# con MSYS2): con CRLF bash non li esegue
+*.sh text eol=lf
+packaging/appimage/AppRun text eol=lf

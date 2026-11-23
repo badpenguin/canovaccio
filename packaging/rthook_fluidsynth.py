@@ -9,12 +9,19 @@ import os
 import sys
 
 _system_find_library = ctypes.util.find_library
+if sys.platform.startswith("win"):
+    _PATTERN = "*fluidsynth*.dll"
+elif sys.platform == "darwin":
+    _PATTERN = "libfluidsynth*.dylib"
+else:
+    _PATTERN = "libfluidsynth.so*"
 
 
 def _find_library(name):
     """Per i nomi di FluidSynth la libreria del pacchetto; per tutto il resto la ricerca normale."""
     if "fluidsynth" in name:
-        found = sorted(glob.glob(os.path.join(sys._MEIPASS, "libfluidsynth.so*")))
+        # 2026-11-23: nome della libreria per sistema (Linux .so, Windows DLL di MSYS2, macOS .dylib di Homebrew)
+        found = sorted(glob.glob(os.path.join(sys._MEIPASS, _PATTERN)))
         if found:
             return found[0]
     return _system_find_library(name)

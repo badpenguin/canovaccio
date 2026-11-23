@@ -15,6 +15,7 @@ gi.require_version("Gdk", "4.0")
 from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 
 from .. import APP_NAME, desktop  # noqa: E402
+from .keys import PRIMARY_MASK  # noqa: E402
 from .about_dialog import AboutDialog  # noqa: E402
 from .desktop_dialog import DesktopDialog  # noqa: E402
 from ..core.document import AddTrack, Compound, DeleteTrack, Document  # noqa: E402
@@ -121,14 +122,14 @@ def build_grid_menu() -> Gio.Menu:
 # menu Notes: comandi sulle note selezionate, divisi per funzione.
 # (etichetta, azione, tasto mostrato; i tasti veri li gestisce la griglia, tranne Ctrl+D)
 NOTES_SECTIONS = [
-    [("_Duplicate", "notes-duplicate", "<Control>d"), ("_Merge", "notes-merge", None),
+    [("_Duplicate", "notes-duplicate", "<Primary>d"), ("_Merge", "notes-merge", None),
      ("De_lete", "notes-delete", "Delete")],
     [("_Transpose…", "notes-transpose", None), ("Semitone _Up", "notes-up", "Up"),
-     ("Semitone Dow_n", "notes-down", "Down"), ("_Octave Up", "notes-octave-up", "<Control>Up"),
-     ("Octave Do_wn", "notes-octave-down", "<Control>Down")],
+     ("Semitone Dow_n", "notes-down", "Down"), ("_Octave Up", "notes-octave-up", "<Primary>Up"),
+     ("Octave Do_wn", "notes-octave-down", "<Primary>Down")],
     [("Move Le_ft", "notes-left", "Left"), ("Move _Right", "notes-right", "Right")],
-    [("Dou_ble Length", "notes-double", "<Control>KP_Add"), ("_Halve Length", "notes-halve", "<Control>KP_Subtract"),
-     ("_Add/Remove Dot", "notes-dot", "<Control>period"), ("T_ie / Untie", "notes-tie", None)],
+    [("Dou_ble Length", "notes-double", "<Primary>KP_Add"), ("_Halve Length", "notes-halve", "<Primary>KP_Subtract"),
+     ("_Add/Remove Dot", "notes-dot", "<Primary>period"), ("T_ie / Untie", "notes-tie", None)],
     [("_Velocity…", "notes-velocity", None)],
     [("_Quantize to Snap", "notes-quantize-snap", None), ("Quanti_ze…", "notes-quantize", None)],
     [("_Staccato", "notes-staccato", None), ("S_lur", "notes-slur", None)],
@@ -371,23 +372,23 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _install_actions(self, app: Gtk.Application) -> None:
         for name, cb, accels in (
-            ("new", lambda *_: self.after_saving_changes(self.new_song), ["<Control>n"]),
-            ("open", lambda *_: self.after_saving_changes(self.choose_file), ["<Control>o"]),
-            ("save", lambda *_: self.save(), ["<Control>s"]),
-            ("save-as", lambda *_: self.save_as(), ["<Control><Shift>s"]),
+            ("new", lambda *_: self.after_saving_changes(self.new_song), ["<Primary>n"]),
+            ("open", lambda *_: self.after_saving_changes(self.choose_file), ["<Primary>o"]),
+            ("save", lambda *_: self.save(), ["<Primary>s"]),
+            ("save-as", lambda *_: self.save_as(), ["<Primary><Shift>s"]),
             ("save-midi", lambda *_: self.save_midi(), []),
             ("import-chord-looper", lambda *_: self.import_chord_looper(), []),
             ("style-generate-all", lambda *_: self.generate_style(None), []),
-            ("select-all", lambda *_: self._select_all(), ["<Control>a"]),
+            ("select-all", lambda *_: self._select_all(), ["<Primary>a"]),
             ("track-select-segments", lambda *_: self.session.document and self.tracks.select_track_segments(), []),
-            ("undo", lambda *_: self.session.document and self.session.document.undo(), ["<Control>z"]),
-            ("redo", lambda *_: self.session.document and self.session.document.redo(), ["<Control><Shift>z"]),
-            ("cut", lambda *_: self._clipboard("cut_selection", self.tracks.cut_selection), ["<Control>x"]),
-            ("copy", lambda *_: self._clipboard("copy_selection", self.tracks.copy_selection), ["<Control>c"]),
-            ("paste", lambda *_: self._clipboard("paste", lambda: self.tracks.paste_at_play(linked=True)), ["<Control>v"]),
-            ("paste-independent", lambda *_: self.session.document and self.tracks.paste_at_play(linked=False), ["<Control><Shift>v"]),
+            ("undo", lambda *_: self.session.document and self.session.document.undo(), ["<Primary>z"]),
+            ("redo", lambda *_: self.session.document and self.session.document.redo(), ["<Primary><Shift>z"]),
+            ("cut", lambda *_: self._clipboard("cut_selection", self.tracks.cut_selection), ["<Primary>x"]),
+            ("copy", lambda *_: self._clipboard("copy_selection", self.tracks.copy_selection), ["<Primary>c"]),
+            ("paste", lambda *_: self._clipboard("paste", lambda: self.tracks.paste_at_play(linked=True)), ["<Primary>v"]),
+            ("paste-independent", lambda *_: self.session.document and self.tracks.paste_at_play(linked=False), ["<Primary><Shift>v"]),
             ("seg-unlink", lambda *_: self.session.document and self.tracks.unlink_selection(), []),
-            ("seg-duplicate", lambda *_: self.session.document and self.tracks.duplicate_selection(), ["<Control>d"]),
+            ("seg-duplicate", lambda *_: self.session.document and self.tracks.duplicate_selection(), ["<Primary>d"]),
             ("seg-merge", lambda *_: self.session.document and self.tracks.merge_selection(), []),
             ("seg-label", lambda *_: self.label_selection(), []),
             ("seg-import-midi", lambda *_: self.import_midi_clip(), []),
@@ -424,17 +425,17 @@ class MainWindow(Gtk.ApplicationWindow):
             ("input-device", lambda *_: InputDeviceDialog(self, self.midi_in.port or self._saved_input(),
                                                           self._set_input).present(), []),
             ("audio-loopback", lambda *_: LoopbackDialog(self).present(), []),
-            ("track-add", lambda *_: self.session.document and self.tracks.add_track(), ["<Control>t"]),
+            ("track-add", lambda *_: self.session.document and self.tracks.add_track(), ["<Primary>t"]),
             ("track-duplicate-empty", lambda *_: self.session.document and self.tracks.duplicate_track_empty(), []),
             ("track-delete", lambda *_: self.session.document and self.tracks.delete_track(), []),
             ("track-reorder", lambda *_: self.session.document and self.tracks.begin_reorder(), []),
-            ("quit", lambda *_: self.close(), ["<Control>q"]),
+            ("quit", lambda *_: self.close(), ["<Primary>q"]),
             ("about", lambda *_: self.show_about(), []),
             ("desktop-integration", lambda *_: self.show_desktop_integration(), []),
-            ("close", lambda *_: self.close_active(), ["<Control>w"]),  # File > Close
-            ("zoom-in", lambda *_: self._zoom(1), ["<Control>plus", "<Control>equal", "<Control>KP_Add"]),
-            ("zoom-out", lambda *_: self._zoom(-1), ["<Control>minus", "<Control>KP_Subtract"]),
-            ("zoom-reset", lambda *_: self._zoom(0), ["<Control>0", "<Control>KP_0"]),
+            ("close", lambda *_: self.close_active(), ["<Primary>w"]),  # File > Close
+            ("zoom-in", lambda *_: self._zoom(1), ["<Primary>plus", "<Primary>equal", "<Primary>KP_Add"]),
+            ("zoom-out", lambda *_: self._zoom(-1), ["<Primary>minus", "<Primary>KP_Subtract"]),
+            ("zoom-reset", lambda *_: self._zoom(0), ["<Primary>0", "<Primary>KP_0"]),
         ):
             action = Gio.SimpleAction.new(name, None)
             action.connect("activate", cb)
@@ -1335,11 +1336,11 @@ class MainWindow(Gtk.ApplicationWindow):
         if getattr(self, "_accels_notes", None) != on_notes:
             self._accels_notes = on_notes
             app = self.get_application()
-            app.set_accels_for_action("win.seg-duplicate", [] if on_notes else ["<Control>d"])
-            app.set_accels_for_action("win.notes-duplicate", ["<Control>d"] if on_notes else [])
+            app.set_accels_for_action("win.seg-duplicate", [] if on_notes else ["<Primary>d"])
+            app.set_accels_for_action("win.notes-duplicate", ["<Primary>d"] if on_notes else [])
             # Ctrl + / Ctrl − del tastierino: negli editor cambiano la durata delle note, non lo zoom
-            app.set_accels_for_action("win.zoom-in", ["<Control>plus", "<Control>equal"] + ([] if on_notes else ["<Control>KP_Add"]))
-            app.set_accels_for_action("win.zoom-out", ["<Control>minus"] + ([] if on_notes else ["<Control>KP_Subtract"]))
+            app.set_accels_for_action("win.zoom-in", ["<Primary>plus", "<Primary>equal"] + ([] if on_notes else ["<Primary>KP_Add"]))
+            app.set_accels_for_action("win.zoom-out", ["<Primary>minus"] + ([] if on_notes else ["<Primary>KP_Subtract"]))
         return False
 
     STACCATO_ACTIONS = ("notes-staccato", "notes-detect-staccato", "notes-slur", "notes-detect-chords")  # non sulla batteria
@@ -1373,7 +1374,7 @@ class MainWindow(Gtk.ApplicationWindow):
     # --- tastiera --------------------------------------------------------
 
     def on_key(self, _c, keyval: int, _code: int, state: Gdk.ModifierType) -> bool:
-        if state & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.ALT_MASK):
+        if state & (PRIMARY_MASK | Gdk.ModifierType.ALT_MASK):
             return False
         focus = self.get_focus()
         if isinstance(focus, Gtk.Editable):

@@ -35,6 +35,7 @@ from ..core.model import Note, PlacedNote, Track  # noqa: E402
 from ..core.pitch import STEPS, Pitch, Spelling  # noqa: E402
 from ..engraving.layout import RULER_HEIGHT, Glyph, ScoreLayout, _key_alters, engrave  # noqa: E402
 from ..output.transport import Transport  # noqa: E402
+from .keys import PRIMARY_MASK  # noqa: E402
 from .follow import follow_center  # noqa: E402
 from . import ruler  # noqa: E402
 from .note_editing import DEFAULT_SNAP, SNAPS, NoteEditing  # noqa: E402
@@ -114,7 +115,7 @@ class NotationView(NoteEditing, Gtk.Box):
         self.area.add_controller(motion)
         keys = Gtk.EventControllerKey()  # frecce e tasti dei comandi sulle note
         keys.connect("key-pressed", lambda _c, kv, _code, st: self.note_key(
-            Gdk.keyval_name(kv), bool(st & Gdk.ModifierType.CONTROL_MASK)))
+            Gdk.keyval_name(kv), bool(st & PRIMARY_MASK)))
         self.area.add_controller(keys)
         scroll = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.BOTH_AXES)
         scroll.connect("scroll", self.on_scroll)
@@ -652,7 +653,7 @@ class NotationView(NoteEditing, Gtk.Box):
 
     def on_scroll(self, ctrl: Gtk.EventControllerScroll, dx: float, dy: float) -> bool:
         state = ctrl.get_current_event_state()
-        if state & Gdk.ModifierType.CONTROL_MASK:
+        if state & PRIMARY_MASK:
             self.zoom_step(1 if dy < 0 else -1)
         elif state & Gdk.ModifierType.SHIFT_MASK:
             self.vadj.set_value(self.vadj.get_value() + (dy or dx) * SCROLL_STEP)

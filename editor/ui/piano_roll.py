@@ -32,6 +32,7 @@ from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 from ..core.document import AddNotes, Document, EditNotes  # noqa: E402
 from ..core.instrument import GM_DRUMS  # noqa: E402
 from ..engraving.layout import _pretty_symbol  # noqa: E402
+from .keys import PRIMARY_MASK  # noqa: E402
 from .score_render import TEXT_FONT  # noqa: E402
 from ..core.model import Note, PlacedNote, Track  # noqa: E402
 from ..output.transport import Transport  # noqa: E402
@@ -245,9 +246,9 @@ class PianoRollView(NoteEditing, Gtk.Box):
 
     def on_scroll(self, ctrl: Gtk.EventControllerScroll, dx: float, dy: float) -> bool:
         state = ctrl.get_current_event_state()
-        if state & Gdk.ModifierType.CONTROL_MASK and state & Gdk.ModifierType.SHIFT_MASK:
+        if state & PRIMARY_MASK and state & Gdk.ModifierType.SHIFT_MASK:
             self.zoom_rows(1.15 if dy < 0 else 1 / 1.15)  # Ctrl+Maiusc+rotella: zoom verticale
-        elif state & Gdk.ModifierType.CONTROL_MASK:
+        elif state & PRIMARY_MASK:
             self.zoom(1.15 if dy < 0 else 1 / 1.15, self._pointer_x)
         elif state & Gdk.ModifierType.SHIFT_MASK:  # Maiusc+rotella: su/giù (altezze)
             self.vadj.set_value(self.vadj.get_value() + (dy or dx) * self.key_h * 3)
@@ -616,7 +617,7 @@ class PianoRollView(NoteEditing, Gtk.Box):
 
     def on_key(self, _c, keyval: int, _code: int, state: Gdk.ModifierType) -> bool:
         """Tasti dei comandi sulle note (gli stessi del menu Notes, vedi note_editing)."""
-        return self.note_key(Gdk.keyval_name(keyval), bool(state & Gdk.ModifierType.CONTROL_MASK))
+        return self.note_key(Gdk.keyval_name(keyval), bool(state & PRIMARY_MASK))
 
     @property
     def kb_w(self) -> int:

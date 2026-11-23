@@ -1,12 +1,16 @@
 """Integrazione col desktop Linux (editor/desktop.py, 2026-11-23): file installati, link, aggiornamento e rimozione.
 Tutto in una cartella temporanea (HOME e XDG_DATA_HOME finti), senza lanciare gli strumenti del sistema."""
 
+import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
 
 from editor import APP_COMMAND, APP_ID, desktop
+
+# 2026-11-23: l'integrazione esiste solo su Linux (i test usano link simbolici e le cartelle XDG)
+pytestmark = pytest.mark.skipif(not sys.platform.startswith("linux"), reason="desktop integration is Linux only")
 
 
 @pytest.fixture
