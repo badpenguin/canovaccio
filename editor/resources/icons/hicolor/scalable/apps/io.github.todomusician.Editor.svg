@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3584e4"/>
+      <stop offset="1" stop-color="#1a5fb4"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" fill="url(#bg)"/>
+  <!-- segmenti colorati (tracce) -->
+  <rect x="12" y="96" width="44" height="12" fill="#f6d32d"/>
+  <rect x="62" y="96" width="54" height="12" fill="#57e389"/>
+  <!-- pentagramma -->
+  <g fill="#ffffff">
+    <rect x="12" y="22" width="104" height="3"/>
+    <rect x="12" y="34" width="104" height="3"/>
+    <rect x="12" y="46" width="104" height="3"/>
+    <rect x="12" y="58" width="104" height="3"/>
+    <rect x="12" y="70" width="104" height="3"/>
+  </g>
+  <!-- croma -->
+  <g fill="#241f31">
+    <ellipse cx="54" cy="66" rx="12" ry="8.5" transform="rotate(-20 54 66)"/>
+    <rect x="63" y="14" width="4.5" height="52"/>
+    <path d="M67.5 14c4 10 18 14 16 30-2-8-8-12-16-14z"/>
+  </g>
+</svg>

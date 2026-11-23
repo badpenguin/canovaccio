@@ -1,0 +1,15 @@
+# documenti di sviluppo: non si pubblicano (2026-11-23)
+/AGENTS.md
+/dev/
+
+# configurazione locale di editor e agenti
+.claude/
+.idea/
+.vscode/
+.mcp.json
+
+# file generati
+.venv/
+.pytest_cache/
+__pycache__/
+*.pyc
