@@ -1,4 +1,5 @@
-"""Avvio: python -m editor [file.mid | progetto.music]"""
+"""Avvio: python -m editor [file] (o ./canovaccio.sh [file]): progetto .music/.stile, MIDI,
+partitura MuseScore/MusicXML, progetto Rosegarden o stile Yamaha da aprire."""
 
 from __future__ import annotations
 
@@ -8,9 +9,18 @@ import sys
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(prog="editor", description="Music editor (MVP)")
-    parser.add_argument("file", nargs="?", help=".music project to open or .mid file to import")
-    parser.add_argument("-v", "--verbose", action="store_true")
+    """Legge la riga di comando (file da aprire, -v) e avvia l'applicazione GTK."""
+    # 2026-11-23: aiuto con il nome del programma e tutti i formati che si aprono (prima "editor",
+    # "Music editor (MVP)" e solo .music/.mid)
+    parser = argparse.ArgumentParser(
+        prog="canovaccio.sh",
+        description="Canovaccio: MIDI sequencer with grid, notation, chord track and Yamaha styles.")
+    parser.add_argument(
+        "file", nargs="?",
+        help="file to open: a project (.music, .stile) or a file to import: MIDI (.mid, .midi), "
+             "MuseScore (.mscz, .mscx), MusicXML (.musicxml, .mxl, .xml), Rosegarden (.rg), "
+             "Yamaha style (.sty, .prs, .sst, .fps, .bcs). Without it the window opens empty.")
+    parser.add_argument("-v", "--verbose", action="store_true", help="show more log messages")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING)
 
