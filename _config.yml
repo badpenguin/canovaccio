@@ -2,7 +2,8 @@
 # Il tema dà solo l'aspetto; i contenuti si scrivono nel README.
 theme: jekyll-theme-cayman
 title: Canovaccio
-description: Compose, arrange and play: tracks and linked segments, piano roll and real notation in sync, chords and guitar chords with strum, chord track with Yamaha style accompaniment, MIDI keyboard recording, import from MIDI, MuseScore, MusicXML and Rosegarden.
+# tra virgolette: i due punti seguiti da spazio ("play: tracks") rompono lo YAML (build di Pages fallita, 2026-11-23)
+description: "Compose, arrange and play: tracks and linked segments, piano roll and real notation in sync, chords and guitar chords with strum, chord track with Yamaha style accompaniment, MIDI keyboard recording, import from MIDI, MuseScore, MusicXML and Rosegarden."
 
 # il sito pubblica solo la pagina e gli screenshot: il codice e i file di prova restano fuori
 exclude:
