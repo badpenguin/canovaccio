@@ -108,9 +108,40 @@ Imports keep only what Canovaccio can represent: for example repeats, dynamics, 
 skipped, and its bars are read once, in written order.
 
 
-## Install the binary (AppImage)
+## Install the binary
 
-Coming soon.
+
+### Linux
+
+Canovaccio for Linux is a single AppImage file: nothing to install, the GTK libraries and a General MIDI SoundFont
+(TimGM6mb) are inside.
+
+It runs on 64-bit PCs (x86_64) with Ubuntu 24.04, Linux Mint 22, Debian 13, Fedora 40 or newer.
+
+Download `Canovaccio-X.Y.Z-x86_64.AppImage` from the [latest release](https://github.com/badpenguin/canovaccio/releases/latest),
+make it executable and start it:
+
+```bash
+chmod +x Canovaccio-*-x86_64.AppImage
+./Canovaccio-*-x86_64.AppImage
+```
+
+You can also make it executable from the file manager (Properties › Permissions) and open it with a double click.
+
+If it does not start because FUSE is missing, run it with `--appimage-extract-and-run`.
+
+If a SoundFont is installed on your system, Canovaccio uses that one instead of the built-in TimGM6mb
+(see [SoundFont](#soundfont)).
+
+
+### Windows
+
+Coming soon!
+
+
+### macOS
+
+Coming soon!
 
 
 ## Install from source
