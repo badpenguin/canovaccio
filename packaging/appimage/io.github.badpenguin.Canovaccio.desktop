@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Canovaccio
+Comment=MIDI sequencer with grid, notation, chord track and Yamaha styles
+Exec=canovaccio %f
+Icon=io.github.badpenguin.Canovaccio
+Terminal=false
+Categories=AudioVideo;Audio;Midi;Sequencer;Music;
+MimeType=audio/midi;audio/x-midi;application/vnd.recordare.musicxml+xml;application/vnd.recordare.musicxml;application/x-musescore;application/x-canovaccio-project;application/x-canovaccio-style;audio/x-yamaha-style;
+StartupWMClass=io.github.badpenguin.Canovaccio
+StartupNotify=true

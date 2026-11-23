@@ -57,4 +57,7 @@ def soundfont_dirs() -> list[Path]:
     else:
         dirs = [Path("/usr/share/sounds/sf2"), Path("/usr/share/soundfonts"), Path("/usr/share/sounds/sf3"),
                 home / ".local" / "share" / "soundfonts", home / ".local" / "share" / "sounds" / "sf2"]
+    # 2026-11-23: per ultima la cartella dentro il pacchetto (AppImage e gli altri binari), dove la build mette
+    # TimGM6mb: si usa solo se nel sistema non c'è un SoundFont. Nei sorgenti la cartella non esiste.
+    dirs.append(Path(__file__).resolve().parent / "resources" / "soundfonts")
     return dirs

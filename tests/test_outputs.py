@@ -579,3 +579,14 @@ def test_panic_resets_controllers_to_gm_defaults():
     tr.reset()
     assert [0xB0, 121, 0] in b._out.sent and [0xB0 | 15, 7, 100] in b._out.sent and [0xB3, 10, 64] in b._out.sent
     assert tr.state is State.STOPPED
+
+
+def test_bundled_soundfont_folder_is_searched_last():
+    """La cartella del SoundFont incluso nei binari (2026-11-23) si cerca dopo quelle del sistema."""
+    from pathlib import Path
+
+    import editor
+    from editor.system import soundfont_dirs
+
+    dirs = soundfont_dirs()
+    assert dirs[-1] == Path(editor.__file__).resolve().parent / "resources" / "soundfonts"

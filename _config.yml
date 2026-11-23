@@ -12,3 +12,4 @@ exclude:
   - tools/
   - examples/
   - pyproject.toml
+  - packaging/

@@ -9,6 +9,9 @@
 .mcp.json
 
 # file generati
+# build dei binari (packaging/build-appimage.sh, 2026-11-23): si possono cancellare
+/build/
+/dist/
 .venv/
 .pytest_cache/
 __pycache__/

@@ -1,0 +1,5 @@
+#!/bin/sh
+# Lanciatore dell'AppImage (2026-11-23): avvia il programma messo da PyInstaller in usr/lib/canovaccio,
+# passando gli argomenti (il file da aprire).
+HERE="$(dirname "$(readlink -f "$0")")"
+exec "$HERE/usr/lib/canovaccio/canovaccio" "$@"
