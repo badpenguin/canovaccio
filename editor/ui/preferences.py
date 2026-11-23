@@ -1,6 +1,6 @@
 """Preferenze dell'app in settings.json, nella cartella di configurazione del sistema
 (Linux: $XDG_CONFIG_HOME/canovaccio; Windows: %APPDATA%; macOS: Library/Application Support).
-Oggi: tema, uscite (File > Output Devices…), uscita in uso, ponte audio e file recenti."""
+Oggi: tema, uscite (File > Output Devices…), uscita in uso, ponte audio, file recenti e integrazione col desktop."""
 
 from __future__ import annotations
 
@@ -67,3 +67,23 @@ def remove_recent(path: str) -> list[str]:
     files = [p for p in recent_files() if p != path]
     save(recent=files)
     return files
+
+
+def desktop_integration() -> str | None:
+    """Risposta alla domanda sull'integrazione col desktop (editor/desktop.py): "yes", "no" o None (mai chiesto).
+    2026-11-23: con "no" all'avvio non si chiede più (scelta dell'utente); Help > Desktop Integration… la rifà."""
+    value = load().get("desktop_integration")
+    return value if value in ("yes", "no") else None
+
+
+def desktop_open_others() -> bool:
+    """Ultima scelta della casella "apri anche MIDI, MusicXML… con Canovaccio" (per riproporla nel dialogo)."""
+    return bool(load().get("desktop_open_others", False))
+
+
+def set_desktop_integration(answer: str, open_others: bool | None = None) -> None:
+    """Salva la risposta ("yes" o "no") e, se indicata, la scelta sulle app predefinite."""
+    values = {"desktop_integration": answer}
+    if open_others is not None:
+        values["desktop_open_others"] = open_others
+    save(**values)

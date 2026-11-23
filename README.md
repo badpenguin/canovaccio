@@ -133,6 +133,9 @@ If it does not start because FUSE is missing, run it with `--appimage-extract-an
 If a SoundFont is installed on your system, Canovaccio uses that one instead of the built-in TimGM6mb
 (see [SoundFont](#soundfont)).
 
+The first time it starts, Canovaccio offers to add itself to the applications menu: see
+[Desktop integration](#desktop-integration-linux).
+
 
 ### Windows
 
@@ -185,108 +188,14 @@ Start it with the launcher script, from any folder:
 
 The script runs the same as `.venv/bin/python -m editor` from the `canovaccio` folder.
 
-
-### Menu launcher (Cinnamon)
-
-To start Canovaccio from the Cinnamon menu, with its icon, run these commands from the `canovaccio` folder.
-
-They write a launcher in `~/.local/share/applications/` that points to this folder:
-
-```bash
-cat > ~/.local/share/applications/io.github.badpenguin.Canovaccio.desktop <<EOF
-[Desktop Entry]
-Type=Application
-Name=Canovaccio
-Comment=MIDI sequencer with grid, notation, chord track and Yamaha styles
-Exec=$PWD/canovaccio.sh %f
-Icon=$PWD/editor/resources/icons/hicolor/scalable/apps/io.github.badpenguin.Canovaccio.svg
-Terminal=false
-Categories=AudioVideo;Audio;Midi;Sequencer;Music;
-MimeType=audio/midi;audio/x-midi;application/vnd.recordare.musicxml+xml;application/vnd.recordare.musicxml;application/x-musescore;application/x-canovaccio-project;application/x-canovaccio-style;audio/x-yamaha-style;
-StartupWMClass=io.github.badpenguin.Canovaccio
-StartupNotify=true
-EOF
-update-desktop-database ~/.local/share/applications
-```
-
-Canovaccio then appears in the menu under Sound & Video; right-click it to add it to the panel or the desktop.
-
-It also shows up in the file manager's "Open With" for MIDI, MusicXML and MuseScore files.
-
-If you move the `canovaccio` folder, run the commands again.
-
-The same launcher works on the other Linux desktops (GNOME, KDE, Xfce, MATE).
-
-
-### File icons
-
-To show Canovaccio's icon on its projects (`.music`), customised styles (`.stile`), Yamaha styles (`.sty`) and Chord
-Looper banks (`.clb`) in the file manager, register their file types for your user. Run these commands from the
-`canovaccio` folder; no administrator rights are needed.
-
-First the file types:
-
-```bash
-mkdir -p ~/.local/share/mime/packages
-cat > ~/.local/share/mime/packages/canovaccio.xml <<'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
-  <mime-type type="application/x-canovaccio-project">
-    <comment>Canovaccio project</comment>
-    <sub-class-of type="application/gzip"/>
-    <glob pattern="*.music"/>
-    <icon name="io.github.badpenguin.Canovaccio"/>
-    <generic-icon name="io.github.badpenguin.Canovaccio"/>
-  </mime-type>
-  <mime-type type="application/x-canovaccio-style">
-    <comment>Canovaccio style</comment>
-    <sub-class-of type="application/gzip"/>
-    <glob pattern="*.stile"/>
-    <icon name="io.github.badpenguin.Canovaccio"/>
-    <generic-icon name="io.github.badpenguin.Canovaccio"/>
-  </mime-type>
-  <mime-type type="audio/x-yamaha-style">
-    <comment>Yamaha keyboard style</comment>
-    <sub-class-of type="audio/midi"/>
-    <magic priority="10"><match type="string" offset="0" value="MThd"/></magic>
-    <glob pattern="*.sty"/>
-    <icon name="io.github.badpenguin.Canovaccio"/>
-    <generic-icon name="io.github.badpenguin.Canovaccio"/>
-  </mime-type>
-  <mime-type type="application/x-yamaha-chord-looper">
-    <comment>Yamaha Chord Looper bank</comment>
-    <glob pattern="*.clb"/>
-    <icon name="io.github.badpenguin.Canovaccio"/>
-    <generic-icon name="io.github.badpenguin.Canovaccio"/>
-  </mime-type>
-</mime-info>
-EOF
-update-mime-database ~/.local/share/mime
-```
-
-Then the icon:
-
-```bash
-mkdir -p ~/.local/share/icons/hicolor/scalable/apps
-cp editor/resources/icons/hicolor/scalable/apps/io.github.badpenguin.Canovaccio.svg ~/.local/share/icons/hicolor/scalable/apps/
-gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor
-```
-
-Close the file manager (`nemo -q` on Cinnamon, `nautilus -q` on GNOME) and open the folder again.
-
-Notes:
-
-- The `generic-icon` lines matter: without them many icon themes show a blank page instead of Canovaccio's icon.
-- LaTeX also uses `.sty`: LaTeX files keep their own type, because a Yamaha style is recognised by its content
-  (it starts like a MIDI file).
-- The menu launcher above also opens projects, customised styles and Yamaha styles with a double-click.
-  Chord Looper banks only get the icon: load them with File › Import Chord Looper….
+The first time, Canovaccio offers to add itself to the applications menu: see
+[Desktop integration](#desktop-integration-linux).
 
 
 ### SoundFont
 
 The built-in synthesizer needs a General MIDI **SoundFont** (`.sf2` or `.sf3`); without one it stays silent.
-Canovaccio doesn't ship one. There are two ways to get it.
+Installed from source, Canovaccio doesn't ship one (the AppImage does). There are two ways to get it.
 
 **From your package manager.** The commands above already install FluidR3 GM (about 140 MB). For a smaller one:
 
@@ -319,6 +228,39 @@ To run the tests:
 .venv/bin/pip install pytest
 .venv/bin/python -m pytest
 ```
+
+
+## Desktop integration (Linux)
+
+The first time it starts, Canovaccio asks whether to add itself to your desktop. With **Yes** it:
+
+- adds Canovaccio to the applications menu (Sound & Video), with its icon;
+- shows its icon on projects (`.music`), customised styles (`.stile`), Yamaha styles (`.sty`) and Chord Looper banks
+  (`.clb`) in the file manager, and opens projects and styles with a double click;
+- installs the `canovaccio` command in `~/.local/bin`: a link to the AppImage, or to `canovaccio.sh` when installed
+  from source.
+
+A checkbox in the same dialog also makes Canovaccio the default app for MIDI, MusicXML, MuseScore and Yamaha style files;
+without it, Canovaccio only shows up in their "Open With" menu.
+
+Everything goes in your home folder: no administrator rights are needed.
+
+With **No** it doesn't ask again.
+
+To change your answer, use **Help › Desktop Integration…**: it installs, updates or removes everything.
+
+When you download a new version of the AppImage, or move it, start it once: the `canovaccio` link follows it and the menu
+keeps working.
+
+Notes:
+
+- If the `canovaccio` command is not found in a terminal, `~/.local/bin` is not in your PATH: on many systems it is
+  enough to log out and back in.
+- Chord Looper banks only get the icon: load them with File › Import Chord Looper….
+- LaTeX also uses `.sty`: LaTeX files keep their own type, because a Yamaha style is recognised by its content
+  (it starts like a MIDI file).
+- If the file manager still shows the old icons, close it (`nemo -q` on Cinnamon, `nautilus -q` on GNOME) and open the
+  folder again.
 
 
 ## How to use it

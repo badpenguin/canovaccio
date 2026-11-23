@@ -14,8 +14,9 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
 from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 
-from .. import APP_NAME  # noqa: E402
+from .. import APP_NAME, desktop  # noqa: E402
 from .about_dialog import AboutDialog  # noqa: E402
+from .desktop_dialog import DesktopDialog  # noqa: E402
 from ..core.document import AddTrack, Compound, DeleteTrack, Document  # noqa: E402
 from ..core.model import Track  # noqa: E402
 from ..session import Session  # noqa: E402
@@ -230,6 +231,8 @@ def build_menubar() -> Gio.Menu:
         view_menu.append_submenu("_Theme", theme_menu)
     track_menu = build_segment_menu()
     help_menu = Gio.Menu()
+    # 2026-11-23: integrazione col desktop Linux (desktop_dialog.py), richiesta dell'utente
+    help_menu.append("_Desktop Integration…", "win.desktop-integration")
     help_menu.append("_About", "win.about")
     # ordine nella barra: File, Edit, Track, Segment, Grid, Score, Notes, Composer a sinistra; View, Help a destra
     menu.append_submenu("_Track", build_track_menu())
@@ -427,6 +430,7 @@ class MainWindow(Gtk.ApplicationWindow):
             ("track-reorder", lambda *_: self.session.document and self.tracks.begin_reorder(), []),
             ("quit", lambda *_: self.close(), ["<Control>q"]),
             ("about", lambda *_: self.show_about(), []),
+            ("desktop-integration", lambda *_: self.show_desktop_integration(), []),
             ("close", lambda *_: self.close_active(), ["<Control>w"]),  # File > Close
             ("zoom-in", lambda *_: self._zoom(1), ["<Control>plus", "<Control>equal", "<Control>KP_Add"]),
             ("zoom-out", lambda *_: self._zoom(-1), ["<Control>minus", "<Control>KP_Subtract"]),
@@ -437,6 +441,8 @@ class MainWindow(Gtk.ApplicationWindow):
             self.add_action(action)
             app.set_accels_for_action(f"win.{name}", accels)
         self.lookup_action("audio-loopback").set_enabled(loopback.available())  # pactl: solo Linux
+        # solo su Linux e solo se c'è un programma da collegare (AppImage o sorgenti con canovaccio.sh)
+        self.lookup_action("desktop-integration").set_enabled(desktop.launcher_target() is not None)
         recent = Gio.SimpleAction.new("open-recent", GLib.VariantType.new("s"))
         recent.connect("activate", lambda _a, value: self.open_recent(value.get_string()))
         self.add_action(recent)
@@ -1155,6 +1161,12 @@ class MainWindow(Gtk.ApplicationWindow):
     def show_about(self) -> None:
         """Help > About: informazioni sul programma e sull'autore (about_dialog.py)."""
         AboutDialog(self).present()
+
+    def show_desktop_integration(self) -> None:
+        """Help > Desktop Integration…: rifà da capo la domanda sull'integrazione col desktop (desktop_dialog.py)."""
+        target = desktop.launcher_target()
+        if target is not None:
+            DesktopDialog(self, target, startup=False).present()
 
     def loop_range(self) -> tuple[float, float] | None:
         """Tratto del Loop (secondi): le misure mostrate in griglia o notazione; nella scheda

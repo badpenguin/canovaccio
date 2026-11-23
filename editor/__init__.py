@@ -15,6 +15,8 @@ APP_ID = "io.github.badpenguin.Canovaccio"
 # nome della cartella delle preferenze (prima "todo-musician"; le preferenze vecchie si spostano a mano,
 # nessuna migrazione automatica); il percorso completo lo costruisce system.config_dir()
 APP_DIR = "canovaccio"
+# 2026-11-23: comando installato da Help > Desktop Integration… come link in ~/.local/bin (editor/desktop.py)
+APP_COMMAND = "canovaccio"
 # variabili d'ambiente del synth interno in automatico (prima TODO_MUSICIAN_SF2 e TODO_MUSICIAN_AUDIO_DRIVER)
 SOUNDFONT_ENV = "CANOVACCIO_SF2"
 DRIVER_ENV = "CANOVACCIO_AUDIO_DRIVER"

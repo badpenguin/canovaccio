@@ -15,6 +15,7 @@ from ..output.devices import load_devices  # noqa: E402
 from ..session import Session  # noqa: E402
 from . import preferences  # noqa: E402
 from .fonts import register_music_font  # noqa: E402
+from .desktop_dialog import check_at_startup as check_desktop_integration  # noqa: E402
 from .main_window import MainWindow, build_menubar  # noqa: E402
 
 ICON_DIR = Path(__file__).resolve().parent.parent / "resources" / "icons"
@@ -84,6 +85,10 @@ class EditorApp(Gtk.Application):
             device = None if self.backend_name else load_devices(preferences.load())[1]
             self.session = Session(self.backend_name, device)
             self.window = MainWindow(self, self.session)
+            # 2026-11-23: integrazione col desktop Linux (desktop_dialog.py): la domanda o l'aggiornamento del
+            # link, dopo aver mostrato la finestra; non nei test (che passano un backend)
+            if not self.backend_name:
+                GLib.idle_add(check_desktop_integration, self.window)
         return self.window
 
     def do_activate(self) -> None:
