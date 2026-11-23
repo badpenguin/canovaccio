@@ -4,7 +4,7 @@
 chords with strum, chord track with Yamaha style accompaniment, MIDI keyboard recording, import from MIDI, MuseScore,
 MusicXML and Rosegarden.**
 
-Runs on Linux today; Windows and macOS versions are planned.
+Runs on Linux, Windows and macOS (Apple Silicon).
 
 Canovaccio opens your MIDI files, scores and keyboard styles, lets you edit them as a grid or as sheet music, and plays
 them through its built-in synthesizer or through your hardware keyboard. It is written in Python with GTK 4 and follows your
@@ -88,7 +88,7 @@ styles](https://medium.com/@antoniogallo.it/building-a-music-editor-in-python-an
 | MIDI ports | send to external keyboards, expanders and synths; choose sounds by name from the port's sound list |
 | Per-output sounds | each track can use a different sound on each output (SoundFont preset or Bank Select + Program Change) |
 | Panic | stops every note and resets volume, pan and effects on all channels |
-| Audio Loopback | hear a USB keyboard's audio through the PC headphones (PulseAudio / PipeWire) |
+| Audio Loopback | hear a USB keyboard's audio through the PC headphones (Linux: PulseAudio / PipeWire) |
 
 
 ### File formats
@@ -139,15 +139,51 @@ The first time it starts, Canovaccio offers to add itself to the applications me
 
 ### Windows
 
-Coming soon!
+> **Not tested yet.** The Windows version is built automatically, but I haven't tried it myself: I work on Linux.
+> If you try it, please tell me whether it works, or what goes wrong, by opening an
+> [issue](https://github.com/badpenguin/canovaccio/issues).
+
+Canovaccio for Windows is a zip file with the program folder: nothing to install, the GTK libraries and a General MIDI
+SoundFont (TimGM6mb) are inside. It runs on Windows 10 and 11, 64-bit.
+
+Download `Canovaccio-X.Y.Z-windows-x86_64.zip` from the
+[latest release](https://github.com/badpenguin/canovaccio/releases/latest), extract it, open the `Canovaccio` folder and
+start `canovaccio.exe`.
+
+The program is not signed, so the first time Windows SmartScreen warns about an unknown publisher: click
+**More info › Run anyway**.
+
+The first time it starts, Canovaccio installs its music notation font (Bravura) for your user, without administrator
+rights.
 
 
 ### macOS
 
-Coming soon!
+> **Not tested yet.** The macOS version is built automatically, but I haven't tried it myself: I work on Linux.
+> If you try it, please tell me whether it works, or what goes wrong, by opening an
+> [issue](https://github.com/badpenguin/canovaccio/issues).
+
+Canovaccio for macOS runs on Macs with Apple Silicon (M1 or newer) and macOS 15 Sequoia or newer.
+Macs with an Intel processor are not supported.
+
+Download `Canovaccio-X.Y.Z-macos-arm64.dmg` from the [latest release](https://github.com/badpenguin/canovaccio/releases/latest),
+open it and drag Canovaccio into Applications.
+
+The app is not notarized by Apple, so the first time macOS refuses to open it. Open **System Settings › Privacy &
+Security**, scroll down to the message about Canovaccio, click **Open Anyway** and confirm.
+
+If macOS says the app "is damaged and can't be opened", run this once in the Terminal, then open it again:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Canovaccio.app
+```
+
+On the Mac the keyboard shortcuts use `Cmd` where this page says `Ctrl`.
 
 
 ## Install from source
+
+These instructions are for Linux.
 
 Requirements: Python **3.12** or newer, GTK **4**, PyGObject, FluidSynth.
 
@@ -403,6 +439,8 @@ Examples: USER 0001 = 87 · 0 · 1, USER 0128 = 87 · 0 · 128, USER 0129 = 87 �
 
 
 ### Keyboard shortcuts
+
+On macOS, use `Cmd` instead of `Ctrl`.
 
 | Key | Action |
 |---|---|

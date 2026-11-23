@@ -1,6 +1,6 @@
 """Canovaccio (nome interno todo-musician): editor musicale nativo Linux."""
 
-__version__ = "0.6.4"  # tenere allineato con pyproject.toml
+__version__ = "0.6.5"  # tenere allineato con pyproject.toml
 # 2026-11-23: nome visibile del programma, scelto dall'utente per la pubblicazione (prima, per poco,
 # "The Musician"): titolo della finestra, About, dialogo Open, nome della porta MIDI.
 APP_NAME = "Canovaccio"

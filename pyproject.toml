@@ -1,6 +1,6 @@
 [project]
 name = "canovaccio"
-version = "0.6.4"
+version = "0.6.5"
 description = "Compose, arrange and play: tracks and linked segments, piano roll and real notation in sync, chords and guitar chords with strum, chord track with Yamaha style accompaniment, MIDI keyboard recording, import from MIDI, MuseScore, MusicXML and Rosegarden."
 requires-python = ">=3.12"
 license = "GPL-3.0-or-later"
