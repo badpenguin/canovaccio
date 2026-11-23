@@ -14,7 +14,8 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
 from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 
-from .. import APP_NAME, __version__  # noqa: E402
+from .. import APP_NAME  # noqa: E402
+from .about_dialog import AboutDialog  # noqa: E402
 from ..core.document import AddTrack, Compound, DeleteTrack, Document  # noqa: E402
 from ..core.model import Track  # noqa: E402
 from ..session import Session  # noqa: E402
@@ -1136,27 +1137,8 @@ class MainWindow(Gtk.ApplicationWindow):
         MidiClipDialog(self, self.session, self.tracks.selected_track(), bar, imported).present()
 
     def show_about(self) -> None:
-        """Help > About: informazioni sul programma."""
-        dialog = Gtk.AboutDialog(
-            transient_for=self,
-            modal=True,
-            program_name=APP_NAME,
-            version=__version__,
-            comments="Native Linux music editor: tracks and segments, grid (piano roll) and "
-            "score, kept in sync on a single model. MIDI files are imported and exported.",
-            logo_icon_name="io.github.todomusician.Editor",
-        )
-        dialog.add_credit_section(
-            "Components",
-            [
-                "GTK 4 and PyGObject — user interface",
-                "Cairo — grid and score drawing",
-                "Bravura (Steinberg, SIL Open Font License 1.1) — SMuFL music symbols",
-                "mido — MIDI file reading",
-                "FluidSynth / pyfluidsynth — playback",
-            ],
-        )
-        dialog.present()
+        """Help > About: informazioni sul programma e sull'autore (about_dialog.py)."""
+        AboutDialog(self).present()
 
     def loop_range(self) -> tuple[float, float] | None:
         """Tratto del Loop (secondi): le misure mostrate in griglia o notazione; nella scheda

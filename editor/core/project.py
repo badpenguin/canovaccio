@@ -21,7 +21,6 @@ from .style import StyleRule
 from .pitch import Spelling
 from .timeline import KeyTable, MeterTable, TempoTable, TimeSignature
 
-FORMAT = "todo-musician"
 VERSION = 1
 EXTENSION = ".music"
 STYLE_EXTENSION = ".stile"  # uno stile Yamaha importato e personalizzato: stesso formato del .music
@@ -41,7 +40,6 @@ def _unkey(d: dict) -> Key:
 
 def song_to_dict(song: Song) -> dict:
     return {
-        "format": FORMAT,
         "version": VERSION,
         "title": song.title,
         "notes": song.notes,
@@ -81,8 +79,9 @@ def song_to_dict(song: Song) -> dict:
 
 
 def song_from_dict(d: dict) -> Song:
-    if d.get("format") != FORMAT:
-        raise ValueError("not a todo-musician file")
+    # 2026-11-23: il campo "format" (firma "todo-musician") è stato tolto, scelta dell'utente: legarlo al
+    # nome del programma rendeva illeggibili i file salvati se il nome cambia. Non si scrive più e, nei
+    # file vecchi che lo hanno ancora, si ignora.
     if d.get("version", 0) > VERSION:
         raise ValueError(f"file from a newer version ({d['version']}): update the program")
     F = Fraction

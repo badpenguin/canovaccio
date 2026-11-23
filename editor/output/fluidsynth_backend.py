@@ -8,14 +8,13 @@ import os
 from pathlib import Path
 from typing import Sequence
 
+from .. import DRIVER_ENV, SOUNDFONT_ENV
 from ..system import auto_drivers, soundfont_dirs
 from .backend import GM_DEFAULT_CONTROLS, MidiChannelMap, OutputBackend
 from .performance import Control, Event, NoteOff, NoteOn, PitchBend, PolyPressure, Pressure, TrackSetup
 
 log = logging.getLogger(__name__)
 
-SOUNDFONT_ENV = "TODO_MUSICIAN_SF2"
-DRIVER_ENV = "TODO_MUSICIAN_AUDIO_DRIVER"
 SOUNDFONT_NAMES = ["FluidR3_GM.sf2", "default-GM.sf2", "default.sf2", "TimGM6mb.sf2", "GeneralUser GS.sf2",
                    "FluidR3_GM.sf3", "MuseScore_General.sf3"]
 
@@ -33,7 +32,7 @@ def soundfont_files() -> list[Path]:
 
 
 def find_soundfont() -> str | None:
-    """SoundFont automatico: $TODO_MUSICIAN_SF2, altrimenti il primo trovato nel sistema."""
+    """SoundFont automatico: $CANOVACCIO_SF2, altrimenti il primo trovato nel sistema."""
     env = os.environ.get(SOUNDFONT_ENV)
     if env and Path(env).is_file():
         return env

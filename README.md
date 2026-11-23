@@ -10,6 +10,10 @@ Canovaccio opens your MIDI files, scores and keyboard styles, lets you edit them
 them through its built-in synthesizer or through your hardware keyboard. It is written in Python with GTK 4 and follows your
 desktop's GTK theme.
 
+How it was built: [Building a music editor in Python and GTK 4: exact time, real notation and reverse-engineered
+styles](https://medium.com/@antoniogallo.it/building-a-music-editor-in-python-and-gtk-4-exact-time-real-notation-and-reverse-engineered-43151bddffa2)
+(Medium).
+
 ![The Tracks tab](docs/screenshots/1-tracks.png)
 
 
@@ -151,6 +155,38 @@ Start it with the launcher script, from any folder:
 The script runs the same as `.venv/bin/python -m editor` from the `canovaccio` folder.
 
 
+### Menu launcher (Cinnamon)
+
+To start Canovaccio from the Cinnamon menu, with its icon, run these commands from the `canovaccio` folder.
+
+They write a launcher in `~/.local/share/applications/` that points to this folder:
+
+```bash
+cat > ~/.local/share/applications/io.github.badpenguin.Canovaccio.desktop <<EOF
+[Desktop Entry]
+Type=Application
+Name=Canovaccio
+Comment=MIDI sequencer with grid, notation, chord track and Yamaha styles
+Exec=$PWD/canovaccio.sh %f
+Icon=$PWD/editor/resources/icons/hicolor/scalable/apps/io.github.badpenguin.Canovaccio.svg
+Terminal=false
+Categories=AudioVideo;Audio;Midi;Sequencer;Music;
+MimeType=audio/midi;audio/x-midi;application/vnd.recordare.musicxml+xml;application/vnd.recordare.musicxml;application/x-musescore;
+StartupWMClass=io.github.badpenguin.Canovaccio
+StartupNotify=true
+EOF
+update-desktop-database ~/.local/share/applications
+```
+
+Canovaccio then appears in the menu under Sound & Video; right-click it to add it to the panel or the desktop.
+
+It also shows up in the file manager's "Open With" for MIDI, MusicXML and MuseScore files.
+
+If you move the `canovaccio` folder, run the commands again.
+
+The same launcher works on the other Linux desktops (GNOME, KDE, Xfce, MATE).
+
+
 ### SoundFont
 
 The built-in synthesizer needs a General MIDI **SoundFont** (`.sf2` or `.sf3`); without one it stays silent.
@@ -286,8 +322,8 @@ keyboard plays. Yamaha is a trademark of Yamaha Corporation; Canovaccio is not a
   sound chosen by name (or Bank Select + Program Change) for a MIDI port.
 - **Panic** (toolbar) silences everything and resets the controllers.
 
-Environment variables, used when the built-in synth is set to "automatic": `TODO_MUSICIAN_SF2` (SoundFont file) and
-`TODO_MUSICIAN_AUDIO_DRIVER` (FluidSynth audio driver).
+Environment variables, used when the built-in synth is set to "automatic": `CANOVACCIO_SF2` (SoundFont file) and
+`CANOVACCIO_AUDIO_DRIVER` (FluidSynth audio driver).
 
 **Roland FANTOM EX user sounds** aren't in the sound list (they are yours): in the track properties, under On "Fantom", type
 the three numbers. With the number the Fantom shows (e.g. USER 0001):

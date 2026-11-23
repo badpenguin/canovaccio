@@ -1,5 +1,5 @@
 """Preferenze dell'app in settings.json, nella cartella di configurazione del sistema
-(Linux: $XDG_CONFIG_HOME/todo-musician; Windows: %APPDATA%; macOS: Library/Application Support).
+(Linux: $XDG_CONFIG_HOME/canovaccio; Windows: %APPDATA%; macOS: Library/Application Support).
 Oggi: tema, uscite (File > Output Devices…), uscita in uso, ponte audio e file recenti."""
 
 from __future__ import annotations

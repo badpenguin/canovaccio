@@ -7,7 +7,7 @@ import os
 import sys
 from pathlib import Path
 
-APP_DIR = "todo-musician"
+from . import APP_DIR
 
 
 def is_windows() -> bool:

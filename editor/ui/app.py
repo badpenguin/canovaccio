@@ -10,13 +10,13 @@ from pathlib import Path  # noqa: E402
 
 from gi.repository import Gdk, Gio, Gtk  # noqa: E402
 
+from .. import APP_ID  # noqa: E402
 from ..output.devices import load_devices  # noqa: E402
 from ..session import Session  # noqa: E402
 from . import preferences  # noqa: E402
 from .fonts import register_music_font  # noqa: E402
 from .main_window import MainWindow, build_menubar  # noqa: E402
 
-APP_ID = "io.github.todomusician.Editor"
 ICON_DIR = Path(__file__).resolve().parent.parent / "resources" / "icons"
 
 # Sopra il tema di sistema: solo niente angoli arrotondati (menu, elenchi a
