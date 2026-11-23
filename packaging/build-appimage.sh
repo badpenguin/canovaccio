@@ -25,7 +25,9 @@ cp -a build/pyinstaller/canovaccio "$APPDIR/usr/lib/"
 install -m 755 packaging/appimage/AppRun "$APPDIR/AppRun"
 cp packaging/appimage/io.github.badpenguin.Canovaccio.desktop "$APPDIR/"
 cp editor/resources/icons/hicolor/scalable/apps/io.github.badpenguin.Canovaccio.svg "$APPDIR/"
-cp "$APPDIR/io.github.badpenguin.Canovaccio.svg" "$APPDIR/.DirIcon"
+# .DirIcon in PNG: appimagetool non accetta l'SVG ("AppImage will be created although .DirIcon is not valid",
+# 2026-11-23; in futuro rifiuterà di costruire)
+rsvg-convert -w 256 -h 256 "$APPDIR/io.github.badpenguin.Canovaccio.svg" -o "$APPDIR/.DirIcon"
 
 # appimagetool (versione continua del progetto AppImage); senza FUSE sul runner si estrae e si esegue
 TOOL=build/appimagetool

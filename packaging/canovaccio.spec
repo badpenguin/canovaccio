@@ -29,8 +29,9 @@ ICON = os.path.join(ROOT, "build", "icons", "canovaccio.png")
 # libfluidsynth: pyfluidsynth la apre con ctypes, quindi PyInstaller non la vede da solo; la si aggiunge a
 # mano (le sue dipendenze le trova PyInstaller) e rthook_fluidsynth.py la fa trovare a pyfluidsynth
 if WINDOWS:
-    # MSYS2: le DLL stanno in <prefisso di Python>/bin (es. C:/msys64/ucrt64/bin)
-    fluidsynth_libs = sorted(glob.glob(os.path.join(sys.prefix, "bin", "*fluidsynth*.dll")))
+    # MSYS2: le DLL stanno in <prefisso di Python>/bin (es. C:/msys64/ucrt64/bin). base_prefix e non prefix:
+    # dentro il venv sys.prefix è la cartella .venv (2026-11-23, prima build Windows fallita per questo)
+    fluidsynth_libs = sorted(glob.glob(os.path.join(sys.base_prefix, "bin", "*fluidsynth*.dll")))
 elif MAC:
     brew = os.environ.get("HOMEBREW_PREFIX", "/opt/homebrew")
     fluidsynth_libs = sorted(glob.glob(os.path.join(brew, "lib", "libfluidsynth.*.dylib")))
@@ -89,4 +90,4 @@ if MAC:
                  bundle_identifier=APP_ID, version=VERSION,
                  info_plist={"CFBundleName": "Canovaccio", "CFBundleDisplayName": "Canovaccio",
                              "CFBundleShortVersionString": VERSION, "NSHighResolutionCapable": True,
-                             "LSMinimumSystemVersion": "14.0"})
+                             "LSMinimumSystemVersion": "15.0"})

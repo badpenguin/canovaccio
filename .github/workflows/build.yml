@@ -46,7 +46,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-venv python3-gi python3-gi-cairo gir1.2-gtk-4.0 \
-            libfluidsynth3 timgm6mb-soundfont librsvg2-common adwaita-icon-theme
+            libfluidsynth3 timgm6mb-soundfont librsvg2-common librsvg2-bin adwaita-icon-theme
 
       - name: Python environment
         # Python di sistema: il venv deve vedere PyGObject e pycairo installati con apt
@@ -115,7 +115,9 @@ jobs:
 
   macos:
     needs: soundfont
-    runs-on: macos-14  # Apple Silicon; Homebrew costruisce per questa versione di macOS (14 o più nuova)
+    # Apple Silicon; Homebrew costruisce per questa versione di macOS (15 o più nuova). 2026-11-23: macos-14
+    # non è più disponibile su GitHub ("The configuration macos-14-arm64 is not supported")
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
