@@ -242,7 +242,8 @@ class SongDialog(Gtk.Window):
         for title, width in COLUMNS:
             header.append(Gtk.Label(label=title, xalign=0, width_request=width, css_classes=["heading"]))
         header.append(Gtk.Box(width_request=DELETE_WIDTH))
-        self.list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
+        # 2026-11-23: margine a destra, il cestino non tocca la scrollbar (segnalato dall'utente)
+        self.list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE, margin_end=8)
         rows = song_rows(doc.song)
         self.defaults = {prop: value for bar, beat, prop, value in rows if bar == 1 and beat == 1}
         fixed_left = set(PROPERTIES)
@@ -251,7 +252,10 @@ class SongDialog(Gtk.Window):
             if fixed:
                 fixed_left.discard(prop)
             self.list.append(EventRow(bar, beat, prop, value, fixed, self.defaults, self.list.remove))
-        scroller = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER, propagate_natural_width=True)
+        # 2026-11-23: overlay_scrolling=False: la scrollbar ha il suo spazio accanto alle righe invece di
+        # disegnarsi sopra il bordo destro, dove copriva il pulsante di cancellazione
+        scroller = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER, propagate_natural_width=True,
+                                      overlay_scrolling=False)
         scroller.set_child(self.list)
 
         add = Gtk.Button(label="Add")

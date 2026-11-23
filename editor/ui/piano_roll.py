@@ -360,7 +360,7 @@ class PianoRollView(NoteEditing, Gtk.Box):
 
     def on_motion(self, _c, x: float, y: float) -> None:
         self._pointer_x = x
-        self._pointer = (x, y)  # Paste: incolla al puntatore
+        self._pointer = (x, y)  # zoom verticale: riga sotto il puntatore
         mode = self.get_mode()
         self._update_split_hint(x, y if mode == "split" and self._op is None else None)
         if mode in ("resize", "select") and self._op is None:  # ↔ sui bordi delle note
@@ -639,11 +639,11 @@ class PianoRollView(NoteEditing, Gtk.Box):
         return self.track, max(self.snapped(pos, step=length), Fraction(0)), length
 
     def paste_target(self) -> tuple[Track, Fraction] | None:
-        """Paste: traccia e posizione (agganciata allo Snap) sotto il puntatore."""
-        pointer = getattr(self, "_pointer", None)
-        if pointer is None or pointer[0] < self.kb_w:
-            return None
-        return self.track, self.snapped(self.pos_of(pointer[0]))
+        """Paste: la traccia della griglia e il **punto di play** (la linea rossa, agganciato allo Snap).
+        2026-11-23: prima il puntatore del mouse; ora come notazione e scheda Tracks (richiesta dell'utente:
+        tutti gli incolla sulla linea rossa, qualsiasi sia la schermata)."""
+        pos = self.doc.song.tempos.position(self.transport.position)
+        return self.track, max(self.snapped(pos), Fraction(0))
 
     def on_doc_changed(self, _doc: Document) -> None:
         if self._tracks_gone():  # traccia cancellata: la finestra chiude la scheda

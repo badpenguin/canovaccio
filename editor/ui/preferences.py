@@ -52,6 +52,17 @@ def add_recent(path: str) -> list[str]:
     return files[:MAX_RECENT]
 
 
+def last_open() -> str | None:
+    """File aperto quando l'app è stata chiusa (None: nessuno), da riaprire all'avvio."""
+    path = load().get("last_open")
+    return path if isinstance(path, str) else None
+
+
+def set_last_open(path: str | None) -> None:
+    """Ricorda il file aperto alla chiusura dell'app (None: nessun file)."""
+    save(last_open=str(Path(path).expanduser().resolve()) if path else None)
+
+
 def remove_recent(path: str) -> list[str]:
     files = [p for p in recent_files() if p != path]
     save(recent=files)

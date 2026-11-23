@@ -127,6 +127,18 @@ def test_recent_files(tmp_path, monkeypatch):
     assert files[0] not in preferences.remove_recent(files[0])
 
 
+def test_last_open_file(tmp_path, monkeypatch):
+    """File aperto alla chiusura (2026-11-23): si ricorda col percorso assoluto e si dimentica con None."""
+    from editor.ui import preferences
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "cfg"))
+    assert preferences.last_open() is None
+    preferences.set_last_open(str(tmp_path / "song.music"))
+    assert preferences.last_open() == str((tmp_path / "song.music").resolve())
+    preferences.set_last_open(None)
+    assert preferences.last_open() is None
+
+
 def test_patch_lists_rosegarden_plus_corrections():
     from editor.output import patch_lists as pl
 
@@ -370,6 +382,24 @@ def test_file_new_empty_song():
     assert [t.name for t in doc.song.tracks] == ["Track 1"] and doc.path == "" and doc.project_path is None
     seg = doc.song.tracks[0].segments[0]
     assert seg.start_bar == 0 and seg.length == 1 and doc.song.groups[seg.group_id].notes == []
+    s.close()
+
+
+def test_close_document():
+    """File > Close (2026-11-23): nessun brano, play fermo, esecuzione vuota; il documento chiuso non
+    ricarica più il transport."""
+    from editor.output.transport import State
+    from editor.session import Session
+
+    s = Session("null")
+    doc = s.open_path("examples/small.mid")
+    s.transport.play()
+    s.close_document()
+    assert s.document is None and s.transport.state is State.STOPPED
+    assert not s.transport.performance.events
+    doc.touch()  # una modifica al brano chiuso non arriva più al transport
+    assert not s.transport.performance.events
+    s.close_document()  # senza brano non fa nulla
     s.close()
 
 

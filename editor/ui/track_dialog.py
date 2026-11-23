@@ -25,6 +25,40 @@ from ..output.devices import INTERNAL, NAME_ALIASES, OutputDevice  # noqa: E402
 from .patch_picker import PatchPicker  # noqa: E402
 
 
+# 2026-11-23: menu degli strumenti GM costruito una volta e riusato dai dialoghi successivi (idea
+# dell'utente): GTK costruisce subito i widget di tutte le 129 voci e dei 16 sottomenu, e le misure
+# davano 250–375 ms a ogni apertura. Le voci non cambiano mai (elenco GM fisso); la voce scelta la
+# segna l'azione "dlg.program" del dialogo in cui il menu è attaccato.
+_GM_POPOVER: Gtk.PopoverMenu | None = None
+
+
+def _gm_popover() -> Gtk.PopoverMenu:
+    """Menu Instrument: "Drum" in cima, poi le famiglie GM, ognuna con i suoi strumenti a lato.
+    Costruito alla prima chiamata, poi lo stesso oggetto (staccato dal dialogo che lo usava)."""
+    global _GM_POPOVER
+    if _GM_POPOVER is None:
+        menu = Gio.Menu()
+        drum_item = Gio.MenuItem.new(_program_label(DRUM), None)
+        drum_item.set_action_and_target_value("dlg.program", GLib.Variant("i", DRUM))
+        drum_section = Gio.Menu()
+        drum_section.append_item(drum_item)
+        menu.append_section(None, drum_section)
+        families = Gio.Menu()
+        menu.append_section(None, families)
+        for name, first, last in GM_FAMILIES:
+            family = Gio.Menu()
+            for p in range(first, last):
+                item = Gio.MenuItem.new(_program_label(p), None)
+                item.set_action_and_target_value("dlg.program", GLib.Variant("i", p))
+                family.append_item(item)
+            families.append_submenu(name, family)
+        _GM_POPOVER = Gtk.PopoverMenu.new_from_model_full(menu, Gtk.PopoverMenuFlags.NESTED)
+    owner = _GM_POPOVER.get_parent()
+    if isinstance(owner, Gtk.MenuButton):  # ancora attaccato a un altro dialogo: si stacca
+        owner.set_popover(None)
+    return _GM_POPOVER
+
+
 class TrackDialog(Gtk.Window):
     def __init__(self, parent: Gtk.Window, doc: Document, track: Track, device: OutputDevice | None = None) -> None:
         super().__init__(title=track.name, transient_for=parent, modal=True, resizable=False)
@@ -51,23 +85,10 @@ class TrackDialog(Gtk.Window):
         actions = Gio.SimpleActionGroup()
         actions.add_action(self.program)
         self.insert_action_group("dlg", actions)
-        menu = Gio.Menu()
-        drum_item = Gio.MenuItem.new(_program_label(DRUM), None)
-        drum_item.set_action_and_target_value("dlg.program", GLib.Variant("i", DRUM))
-        drum_section = Gio.Menu()
-        drum_section.append_item(drum_item)
-        menu.append_section(None, drum_section)
-        families = Gio.Menu()
-        menu.append_section(None, families)
-        for name, first, last in GM_FAMILIES:
-            family = Gio.Menu()
-            for p in range(first, last):
-                item = Gio.MenuItem.new(_program_label(p), None)
-                item.set_action_and_target_value("dlg.program", GLib.Variant("i", p))
-                family.append_item(item)
-            families.append_submenu(name, family)
         self.instrument = Gtk.MenuButton(label=_program_label(program), always_show_arrow=True)
-        self.instrument.set_popover(Gtk.PopoverMenu.new_from_model_full(menu, Gtk.PopoverMenuFlags.NESTED))
+        self.instrument.set_popover(_gm_popover())
+        # il menu condiviso si stacca alla chiusura, altrimenti verrebbe distrutto con il dialogo
+        self.connect("close-request", lambda *_: self.instrument.set_popover(None) or False)
         drum = Gtk.DropDown.new_from_strings(["Drum"])
         drum.set_sensitive(False)
         self.instrument_stack = Gtk.Stack()

@@ -8,7 +8,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
 from pathlib import Path  # noqa: E402
 
-from gi.repository import Gdk, Gio, Gtk  # noqa: E402
+from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 
 from .. import APP_ID  # noqa: E402
 from ..output.devices import load_devices  # noqa: E402
@@ -41,6 +41,14 @@ TOOLBAR_CSS = """
 /* 2026-11-20: niente testo attenuato (dev/DESIGN.md, "Testi"): tolti opacity qui e "dim-label" nelle etichette. */
 .listen-toggle:checked { background: alpha(currentColor, 0.35); }  /* acceso ben visibile anche sulla riga selezionata */
 row:selected .listen-toggle { color: black; }  /* M e S neri anche sulla traccia selezionata */
+/* 2026-11-23: riga intera della traccia in Solo gialla, in Mute rossa (richiesta dell'utente). Colori
+   semitrasparenti: si leggono su temi chiari e scuri. Anche sulla riga selezionata (prima esclusa: il Mute
+   della traccia selezionata non si vedeva); la selezione resta riconoscibile dal bordo del tema. */
+row.track-solo { background-color: alpha(#f6d32d, 0.45); }
+row.track-mute { background-color: alpha(#e01b24, 0.25); }
+/* 2026-11-23: traccia selezionata con un bordo del colore di selezione del tema (richiesta dell'utente):
+   resta riconoscibile anche sopra il giallo del Solo e il rosso del Mute */
+row.track-row:selected { outline: 2px solid @theme_selected_bg_color; outline-offset: -2px; }
 .toolbar .position {
   padding: 3px 10px;
   border: 1px solid alpha(currentColor, 0.3);
@@ -79,7 +87,16 @@ class EditorApp(Gtk.Application):
         return self.window
 
     def do_activate(self) -> None:
-        self._ensure_window().present()
+        """Avvio senza file da aprire: alla prima finestra riapre il file aperto alla chiusura."""
+        first = self.window is None
+        win = self._ensure_window()
+        win.present()
+        # 2026-11-23: riapre il file che era aperto quando l'app è stata chiusa (richiesta dell'utente);
+        # solo all'avvio (non a un secondo avvio con la finestra già aperta) e solo se il file esiste ancora.
+        # Con un file sulla riga di comando passa da do_open e questo non succede.
+        last = preferences.last_open() if first else None
+        if last and Path(last).is_file():
+            GLib.idle_add(lambda: win.open_path(last) or False)  # dopo aver mostrato la finestra
 
     def do_open(self, files, _n, _hint) -> None:
         win = self._ensure_window()

@@ -558,16 +558,15 @@ class NoteEditing:
             self.delete_selection()
 
     def paste(self) -> None:
-        """Edit > Paste: incolla le note nel punto dato dalla vista (griglia: puntatore;
-        notazione: punto di play), con le loro altezze. Ogni nota va nel segmento che la
+        """Edit > Paste: incolla le note nel punto dato dalla vista (`paste_target`: il punto di play,
+        in griglia e in notazione), con le loro altezze. Ogni nota va nel segmento che la
         contiene. Niente incolla (rosso e messaggio) se una nota non entra in un segmento
         modificabile o finirebbe sopra una nota della stessa altezza."""
         if not NOTE_CLIPBOARD:
             self.on_message("The note clipboard is empty.")
             return
-        target = self.paste_target()  # (traccia, posizione agganciata) sotto il puntatore
+        target = self.paste_target()  # (traccia, punto di play agganciato allo Snap)
         if target is None:
-            self.on_message("Move the mouse pointer over the editor where you want to paste.")
             return
         track, at = target
         items, spans = [], []

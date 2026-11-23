@@ -99,6 +99,19 @@ class Session:
             fn(self.document)
         return self.document
 
+    def close_document(self) -> None:
+        """File > Close (2026-11-23): nessun brano aperto. Il play si ferma e si carica un'esecuzione
+        vuota, così il transport non suona più le note del brano chiuso."""
+        from .core.model import Song
+
+        if self.document is None:
+            return
+        self.document.unsubscribe(self._reload)
+        self.transport.stop()
+        self.document = None
+        self._built = None
+        self.transport.load(build_performance(Song()))
+
     def save(self, path: str | Path) -> None:
         """Salva il documento come progetto .music."""
         save_project(self.document.song, path)

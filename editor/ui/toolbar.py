@@ -36,10 +36,13 @@ class PlayerPalette(Gtk.Box):
     def __init__(self, session: Session) -> None:
         super().__init__(spacing=2)
         self.session = session
-        self.btn_start = Gtk.Button(icon_name=themed("media-skip-backward"), tooltip_text="Go to Start")
+        # 2026-11-23: Inizio e Segmento successivo con icone simboliche dell'app (resources/icons): alcuni temi
+        # (es. Mint-Y) non hanno media-skip-*-symbolic e GTK ripiegava su un'icona a colori, chiara, diversa
+        # dalle altre del player (segnalato dall'utente)
+        self.btn_start = Gtk.Button(icon_name="tm-go-start-symbolic", tooltip_text="Go to Start")
         self.btn_play = Gtk.Button(icon_name=themed("media-playback-start"), tooltip_text="Play/Pause (Space)")
         self.btn_stop = Gtk.Button(icon_name=themed("media-playback-stop"), tooltip_text="Stop")
-        self.btn_next = Gtk.Button(icon_name=themed("media-skip-forward"), tooltip_text="Go to Next Segment")
+        self.btn_next = Gtk.Button(icon_name="tm-go-next-symbolic", tooltip_text="Go to Next Segment")
         # 2026-11-20: Panic dopo Stop (deciso dall'utente): note appese e controlli rimasti nel synth
         self.btn_panic = Gtk.Button(icon_name=themed("dialog-warning"),
                                     tooltip_text="Panic: stop, silence all notes and reset volume, pan, "

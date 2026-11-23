@@ -368,5 +368,7 @@ class EventEditorWindow(Gtk.Window):
         self.set_child(box)
         esc = Gtk.ShortcutController()
         esc.add_shortcut(Gtk.Shortcut.new(Gtk.ShortcutTrigger.parse_string("Escape"), Gtk.NamedAction.new("window.close")))
+        # 2026-11-23: anche Ctrl+W, come File > Close nella finestra principale (richiesta dell'utente)
+        esc.add_shortcut(Gtk.Shortcut.new(Gtk.ShortcutTrigger.parse_string("<Control>w"), Gtk.NamedAction.new("window.close")))
         self.add_controller(esc)
         self.connect("close-request", lambda *_: view.shutdown() or False)

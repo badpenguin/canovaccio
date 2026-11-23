@@ -469,3 +469,40 @@ def test_detect_chord_names():
     assert detect_chord([70, 74, 77], flats=True) == "Bb"
     assert detect_chord([60, 61, 62]) is None  # grappolo: non è un accordo
     assert detect_chord([60]) is None
+
+
+def test_paste_segments_from_another_song():
+    """Segmenti copiati in un brano e incollati in un altro (2026-11-23): tracce sotto la prima
+    di destinazione alla stessa distanza, stessa distanza nel tempo, gruppi e note nuovi."""
+    from fractions import Fraction
+
+    from editor.core.document import AddSegments
+    from editor.core.paste import paste_from_other_song
+    from editor.session import Session
+
+    s = Session("null")
+    src = s.open_path("examples/small.mid").song
+    t0, t1 = src.tracks[0], src.tracks[1]
+    a, b = t0.segments[0], t1.segments[0]
+    first = min(src.segment_span(a)[0], src.segment_span(b)[0])
+    entries = [{"track_index": src.tracks.index(t), "rel": src.segment_span(seg)[0] - first,
+                "length": seg.length, "transpose": seg.transpose, "trim": seg.trim, "label": seg.label,
+                "arrangement": seg.arrangement(), "name": src.groups[seg.group_id].name,
+                "content": src.groups[seg.group_id].copy()} for t, seg in ((t0, a), (t1, b))]
+    doc = s.new_document()
+    dest = doc.song
+    assert paste_from_other_song(dest, entries, 0, Fraction(0)) is None  # una traccia sola: non bastano
+    dest.tracks[0].segments.clear()
+    doc2 = s.open_path("examples/small.mid")  # stesse tracce, brano diverso
+    song2 = doc2.song
+    for t in song2.tracks:
+        t.segments.clear()
+    items = paste_from_other_song(song2, entries, 0, Fraction(4))
+    assert [t for t, _s, _g in items] == [song2.tracks[0], song2.tracks[1]]
+    starts = [song2.meters.bar_start(sg.start_bar) + sg.offset for _t, sg, _g in items]
+    assert starts[0] - Fraction(4) == entries[0]["rel"] and starts[1] - Fraction(4) == entries[1]["rel"]
+    assert all(g.id not in src.groups for _t, _s, g in items)  # gruppi nuovi, non quelli del brano di partenza
+    assert len(items[0][2].notes) == len(src.groups[a.group_id].notes)
+    doc2.execute(AddSegments(items))
+    assert all(sg.clone_of is None for _t, sg, _g in items)
+    s.close()

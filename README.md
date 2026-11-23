@@ -171,7 +171,7 @@ Exec=$PWD/canovaccio.sh %f
 Icon=$PWD/editor/resources/icons/hicolor/scalable/apps/io.github.badpenguin.Canovaccio.svg
 Terminal=false
 Categories=AudioVideo;Audio;Midi;Sequencer;Music;
-MimeType=audio/midi;audio/x-midi;application/vnd.recordare.musicxml+xml;application/vnd.recordare.musicxml;application/x-musescore;
+MimeType=audio/midi;audio/x-midi;application/vnd.recordare.musicxml+xml;application/vnd.recordare.musicxml;application/x-musescore;application/x-canovaccio-project;application/x-canovaccio-style;audio/x-yamaha-style;
 StartupWMClass=io.github.badpenguin.Canovaccio
 StartupNotify=true
 EOF
@@ -185,6 +185,71 @@ It also shows up in the file manager's "Open With" for MIDI, MusicXML and MuseSc
 If you move the `canovaccio` folder, run the commands again.
 
 The same launcher works on the other Linux desktops (GNOME, KDE, Xfce, MATE).
+
+
+### File icons
+
+To show Canovaccio's icon on its projects (`.music`), customised styles (`.stile`), Yamaha styles (`.sty`) and Chord
+Looper banks (`.clb`) in the file manager, register their file types for your user. Run these commands from the
+`canovaccio` folder; no administrator rights are needed.
+
+First the file types:
+
+```bash
+mkdir -p ~/.local/share/mime/packages
+cat > ~/.local/share/mime/packages/canovaccio.xml <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-canovaccio-project">
+    <comment>Canovaccio project</comment>
+    <sub-class-of type="application/gzip"/>
+    <glob pattern="*.music"/>
+    <icon name="io.github.badpenguin.Canovaccio"/>
+    <generic-icon name="io.github.badpenguin.Canovaccio"/>
+  </mime-type>
+  <mime-type type="application/x-canovaccio-style">
+    <comment>Canovaccio style</comment>
+    <sub-class-of type="application/gzip"/>
+    <glob pattern="*.stile"/>
+    <icon name="io.github.badpenguin.Canovaccio"/>
+    <generic-icon name="io.github.badpenguin.Canovaccio"/>
+  </mime-type>
+  <mime-type type="audio/x-yamaha-style">
+    <comment>Yamaha keyboard style</comment>
+    <sub-class-of type="audio/midi"/>
+    <magic priority="10"><match type="string" offset="0" value="MThd"/></magic>
+    <glob pattern="*.sty"/>
+    <icon name="io.github.badpenguin.Canovaccio"/>
+    <generic-icon name="io.github.badpenguin.Canovaccio"/>
+  </mime-type>
+  <mime-type type="application/x-yamaha-chord-looper">
+    <comment>Yamaha Chord Looper bank</comment>
+    <glob pattern="*.clb"/>
+    <icon name="io.github.badpenguin.Canovaccio"/>
+    <generic-icon name="io.github.badpenguin.Canovaccio"/>
+  </mime-type>
+</mime-info>
+EOF
+update-mime-database ~/.local/share/mime
+```
+
+Then the icon:
+
+```bash
+mkdir -p ~/.local/share/icons/hicolor/scalable/apps
+cp editor/resources/icons/hicolor/scalable/apps/io.github.badpenguin.Canovaccio.svg ~/.local/share/icons/hicolor/scalable/apps/
+gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor
+```
+
+Close the file manager (`nemo -q` on Cinnamon, `nautilus -q` on GNOME) and open the folder again.
+
+Notes:
+
+- The `generic-icon` lines matter: without them many icon themes show a blank page instead of Canovaccio's icon.
+- LaTeX also uses `.sty`: LaTeX files keep their own type, because a Yamaha style is recognised by its content
+  (it starts like a MIDI file).
+- The menu launcher above also opens projects, customised styles and Yamaha styles with a double-click.
+  Chord Looper banks only get the icon: load them with File › Import Chord Looper….
 
 
 ### SoundFont
@@ -235,11 +300,12 @@ From top to bottom:
 - **Menus**: File, Edit, Track, Segment, Grid, Score, Notes, Composer, View, Help. Only the menus that apply to the tab in
   front are active.
 - **Toolbar**, in palettes:
+  - Save, active when there are unsaved changes;
   - player: go to start, Play / Pause (`Space`), Play in loop, Stop, Panic, next segment, position;
   - tools: Select `F2`, Create `F3`, Move `F4`, Split `F5`, Resize `F6`, Delete `F7`;
   - note values, for the notation editor;
   - the output in use, and Rec for recording.
-- **Tabs**: "Tracks" is always there; each grid or notation editor you open gets its own tab (`Ctrl+W` closes it).
+- **Tabs**: "Tracks" is always there; each grid or notation editor you open gets its own tab (`Ctrl+W` closes it; on Tracks it closes the song).
 - **Bottom bar**: song data (key, tempo, time signature; double-click to edit them) or Snap and zoom in the editors.
 - **Status line**: hints, error messages and the active audio output.
 
@@ -258,7 +324,10 @@ Mouse wheel, the same in every view: wheel = along the timeline, `Shift`+wheel =
   segment you click.
 - **Right-click a segment** (or the Segment menu): Duplicate `Ctrl+D`, Make Independent, Merge, Label… `L`,
   Event Editor, Import MIDI….
-- `Ctrl+C` / `Ctrl+X` and `Ctrl+V` paste **clones** at the mouse pointer; `Ctrl+Shift+V` pastes independent copies.
+- `Ctrl+C` / `Ctrl+X` and `Ctrl+V` paste **clones** at the red play line, on the highlighted track; `Ctrl+Shift+V` pastes
+  independent copies.
+- To copy between songs, copy in the first one, open the second and paste: segments arrive as independent copies,
+  starting on the highlighted track. Copied notes can be pasted in another song's grid or score too.
 - `G` opens the **grid** of the selected segments, `E` (or `Enter`, or a double-click) their **notation**.
 
 ![Segment context menu](docs/screenshots/4-right-click-menu.png)
@@ -273,6 +342,7 @@ The same tools and the Notes menu work in the grid and in the notation:
 - **Select**: click, `Shift`+click, rectangle; drag notes to move them. Arrow keys: `↑`/`↓` semitone,
   `Ctrl+↑`/`↓` octave, `←`/`→` one Snap step.
 - **Length**: `Ctrl` `+` / `-` on the keypad doubles or halves, `Ctrl+.` adds or removes a dot.
+- **Paste** `Ctrl+V` puts the copied notes at the red play line, in the grid as on the staff (and segments in Tracks too).
 - **Notes menu**: Duplicate, Merge, Transpose…, Quantize to Snap, Quantize…, Velocity…, Tie / Untie, Staccato, Slur,
   Detect Staccato.
 - **Double-click a note** for its properties: pitch, spelling, velocity, start, length, tie.
@@ -351,8 +421,9 @@ Examples: USER 0001 = 87 · 0 · 1, USER 0128 = 87 · 0 · 128, USER 0129 = 87 �
 ### Files
 
 - **File › Open…** opens projects, and imports MIDI files, scores, Rosegarden projects and styles. **Open Recent** keeps the
-  last 10 files.
+  last 10 files. The file that was open when you closed the program opens again at the next start.
 - **File › Save** / **Save As…** save a `.music` project; **Save as MIDI…** exports the song as it sounds.
+- **File › Close** (`Ctrl+W`) closes the editor tab in front; on the Tracks tab it closes the song.
 - **File › Song Properties…**: tempo, key and time-signature changes, and the copyright notice.
 - **File › Song Notes…**: free text saved with the song (imports also write useful information here).
 - **View › Theme**: the system GTK theme, or another installed GTK 4 theme.
@@ -377,7 +448,7 @@ Examples: USER 0001 = 87 · 0 · 1, USER 0128 = 87 · 0 · 128, USER 0129 = 87 �
 | `↑` / `↓`, `Ctrl+↑` / `↓` | semitone, octave |
 | `←` / `→` | one Snap step |
 | `Ctrl` `+` / `-` (keypad), `Ctrl+.` | double, halve, dot |
-| `Ctrl+W` | close the editor tab |
+| `Ctrl+W` | close the editor tab, or the song on the Tracks tab |
 | `Ctrl+Q` | quit |
 
 

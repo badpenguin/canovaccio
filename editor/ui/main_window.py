@@ -184,6 +184,10 @@ def build_menubar() -> Gio.Menu:
     save_section.append("Save _As…", "win.save-as")
     save_section.append("Save as _MIDI…", "win.save-midi")
     file_menu.append_section(None, save_section)
+    close_section = Gio.Menu()
+    # 2026-11-23: chiude la scheda dell'editor in primo piano o, nella scheda Tracce, il brano (Ctrl+W)
+    close_section.append("_Close", "win.close")
+    file_menu.append_section(None, close_section)
     song_section = Gio.Menu()
     song_section.append("Song _Properties…", "win.song-properties")
     song_section.append("Song _Notes…", "win.song-notes")
@@ -273,6 +277,12 @@ class MainWindow(Gtk.ApplicationWindow):
         self._event_windows: list = []  # Event Editor aperti (finestre di dialogo)
 
         self.toolbar = Toolbar()
+        # 2026-11-23: pulsante Save nella toolbar (richiesta dell'utente), prima palette: acceso solo con
+        # modifiche non salvate (_update_save_button). Ctrl+S e File > Save restano sempre attivi.
+        self.save_button = Gtk.Button(icon_name=themed("document-save"), tooltip_text="Save (Ctrl+S)",
+                                      sensitive=False, focus_on_click=False)
+        self.save_button.connect("clicked", lambda *_: self.save())
+        self.toolbar.add_palette(self.save_button)
         self.player = PlayerPalette(session)
         self.player.loop_range = self.loop_range
         self.toolbar.add_palette(self.player)
@@ -417,7 +427,7 @@ class MainWindow(Gtk.ApplicationWindow):
             ("track-reorder", lambda *_: self.session.document and self.tracks.begin_reorder(), []),
             ("quit", lambda *_: self.close(), ["<Control>q"]),
             ("about", lambda *_: self.show_about(), []),
-            ("close-tab", lambda *_: self._close_current_tab(), ["<Control>w"]),
+            ("close", lambda *_: self.close_active(), ["<Control>w"]),  # File > Close
             ("zoom-in", lambda *_: self._zoom(1), ["<Control>plus", "<Control>equal", "<Control>KP_Add"]),
             ("zoom-out", lambda *_: self._zoom(-1), ["<Control>minus", "<Control>KP_Subtract"]),
             ("zoom-reset", lambda *_: self._zoom(0), ["<Control>0", "<Control>KP_0"]),
@@ -699,14 +709,20 @@ class MainWindow(Gtk.ApplicationWindow):
         copyright = f" — {doc.song.copyright}" if doc.song.copyright else ""
         self.set_title(f"{'*' if doc.modified else ''}{name}{copyright} — {APP_NAME}")
 
+    def _update_save_button(self, doc: Document) -> None:
+        """Pulsante Save della toolbar: acceso solo con modifiche non salvate nel brano aperto."""
+        self.save_button.set_sensitive(doc is self.session.document and doc.modified)
+
     def on_document(self, doc: Document) -> None:
         for view in self.editor_views():
             self.close_editor(view)
         for window in list(self._event_windows):  # Event Editor del brano di prima
             window.close()
         doc.subscribe(self._update_title)  # * nel titolo con modifiche non salvate
+        doc.subscribe(self._update_save_button)
         doc.subscribe(self._close_deleted_editors)
         self._update_title(doc)
+        self._update_save_button(doc)
         self.tracks.set_document(doc)
         self.stack.set_visible_child_name("song")
         self.notebook.set_current_page(0)
@@ -1184,10 +1200,32 @@ class MainWindow(Gtk.ApplicationWindow):
         page = self.notebook.get_nth_page(self.notebook.get_current_page())
         return page if isinstance(page, (PianoRollView, NotationView)) else None
 
-    def _close_current_tab(self) -> None:
+    def close_active(self) -> None:
+        """File > Close (Ctrl+W): chiude la scheda dell'editor in primo piano; nella scheda Tracce,
+        quando non restano altre schede in primo piano, chiude il brano (chiede di salvare le modifiche).
+        2026-11-23: richiesta dell'utente; prima Ctrl+W chiudeva solo le schede degli editor."""
         view = self._current_editor()
         if view is not None:
             self.close_editor(view)
+            return
+        if self.session.document is None:
+            return
+        if self.recorder.state != "idle":
+            self.recorder.finish(stop=True)  # la registrazione in corso diventa un segmento, poi si chiede
+        self.after_saving_changes(self.close_document)
+
+    def close_document(self) -> None:
+        """Chiude il brano: editor ed Event Editor chiusi, finestra vuota come all'avvio."""
+        for view in self.editor_views():
+            self.close_editor(view)
+        for window in list(self._event_windows):
+            window.close()
+        self.session.close_document()
+        self.stack.set_visible_child_name("empty")
+        self.player.set_enabled(False)
+        self.save_button.set_sensitive(False)
+        self.set_title(APP_NAME)
+        self._update_menus()  # Track e Segment tornano grigi
 
     def _zoom(self, direction: int) -> None:
         view = self._current_editor()
@@ -1366,6 +1404,9 @@ class MainWindow(Gtk.ApplicationWindow):
 
             self.after_saving_changes(go)
             return True  # la finestra resta aperta finché non si risponde
+        # 2026-11-23: il file aperto alla chiusura si riapre al prossimo avvio (richiesta dell'utente);
+        # un brano nuovo mai salvato non ha un file: al prossimo avvio la finestra parte vuota
+        preferences.set_last_open((doc.project_path or doc.path) if doc is not None else None)
         for view in self.editor_views():
             view.shutdown()
         for window in list(self._event_windows):

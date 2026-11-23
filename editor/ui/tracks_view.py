@@ -51,6 +51,7 @@ from ..core.document import (  # noqa: E402
 from ..core.model import Group  # noqa: E402
 from ..core.key import MAJOR, Key  # noqa: E402
 from ..core.model import Segment, Track, new_id, remap_slurs  # noqa: E402
+from ..core.paste import paste_from_other_song  # noqa: E402
 from ..output.transport import State, Transport  # noqa: E402
 from . import ruler  # noqa: E402
 from .follow import follow_center  # noqa: E402
@@ -101,7 +102,6 @@ class TracksView(Gtk.Box):
         self._resize: dict | None = None  # ridimensionamento in corso (strumento Resize)
         self._create: dict | None = None  # segmento in creazione (strumento Create)
         self.clipboard: list[dict] = []  # segmenti copiati (Edit > Copy / Cut)
-        self._pointer: tuple[TrackRow, float] | None = None  # corsia e x sotto il puntatore del mouse (Paste)
         self._paste_fail: list[tuple[Track, float, float]] = []  # incolla fallito: dove sarebbe andato (in rosso)
         self._paste_fail_timer = 0
         self._band: tuple[float, float, float, float] | None = None  # rettangolo di selezione (coord. elenco)
@@ -291,7 +291,9 @@ class TracksView(Gtk.Box):
         if not self.doc:
             return
         page = max(self.view_width(), 1)
-        upper = max(self.bar_x[-1] * self.px_per_whole + 20 + self.pad, page) if self.bar_x else page
+        # 2026-11-23: dopo la fine lo stesso spazio vuoto dell'inizio (una battuta, almeno 20 px), richiesta
+        # dell'utente: prima solo 20 px, con lo zoom alto la fine del brano (es. per incollare lì) si prendeva a fatica
+        upper = max(self.bar_x[-1] * self.px_per_whole + max(self.pad, 20) + self.pad, page) if self.bar_x else page
         value = min(self.hadj.get_value(), max(upper - page, 0))
         self.hadj.configure(value, 0, upper, 40, page * 0.9, page)
 
@@ -583,10 +585,6 @@ class TracksView(Gtk.Box):
             self.band_area.queue_draw()
 
     def split_hover(self, row: "TrackRow | None", x: float = 0.0) -> None:
-        # 2026-11-20: uscendo dalle corsie resta l'ultima posizione (come nella griglia): per
-        # arrivare a Edit > Paste col mouse si esce sempre, e prima il Paste dal menu non andava mai
-        if row is not None:
-            self._pointer = (row, x)
         self._split_hint = (row, x) if row is not None and self.get_mode() == "split" else None
         self.band_area.queue_draw()
         if row is not None and self.get_mode() == "resize":  # ↔ quando si è sopra un bordo
@@ -734,6 +732,8 @@ class TracksView(Gtk.Box):
             group = song.groups[seg.group_id]
             self.clipboard.append({
                 "track": track,
+                # 2026-11-23: brano e posizione della traccia, per incollare in un altro brano (core/paste.py)
+                "song": song, "track_index": song.tracks.index(track),
                 "rel": song.segment_span(seg)[0] - first,
                 "length": seg.length, "transpose": seg.transpose, "trim": seg.trim, "label": seg.label,
                 "arrangement": seg.arrangement(),
@@ -750,29 +750,39 @@ class TracksView(Gtk.Box):
             self.on_message(f"Cut {len(self.clipboard)} segments.", False)
 
     def paste_at_play(self, linked: bool = True) -> None:
-        """Incolla gli appunti nel punto del puntatore del mouse: traccia sotto il puntatore,
-        posizione agganciata alla battuta. Con segmenti di più tracce la prima traccia
-        copiata va lì e le altre sotto, mantenendo le distanze. linked=True (Ctrl+V):
-        cloni, stesso gruppo dell'originale; linked=False (Ctrl+Shift+V): copie
-        indipendenti. Annullato se non c'è spazio o mancano tracce."""
+        """Incolla gli appunti sul punto di play (la linea rossa, agganciato alla battuta) e sulla
+        traccia evidenziata. Con segmenti di più tracce la prima traccia copiata va lì e le altre
+        sotto, mantenendo le distanze. linked=True (Ctrl+V): cloni, stesso gruppo dell'originale;
+        linked=False (Ctrl+Shift+V): copie indipendenti. Annullato se non c'è spazio o mancano
+        tracce. Appunti copiati in un altro brano: sempre copie indipendenti (core/paste.py).
+        2026-11-23: prima incollava al puntatore del mouse; l'utente si aspettava il punto di play
+        (come nella notazione) e incollando a fine brano i segmenti finivano dove stava il mouse."""
         if not self.clipboard or not self.doc:
             self.on_message("Nothing to paste.")
             return
-        if self._pointer is None:
-            self.on_message("Move the mouse pointer to where you want to paste.")
-            return
         song = self.doc.song
-        row, x = self._pointer
-        at = song.snap_to_beat(Fraction(max(self.pos_of(x), 0.0)).limit_denominator(1 << 12))
+        track = self.selected_track()
+        if track is None or track not in song.tracks:
+            self.on_message("Click the name of the track where you want to paste.")
+            return
+        here = Fraction(song.tempos.position(self.transport.position)).limit_denominator(1 << 12)
+        at = song.snap_to_beat(here)
+        if all(c.get("song", song) is not song for c in self.clipboard):
+            # 2026-11-23: appunti copiati in un altro brano: copie indipendenti dalla traccia evidenziata in giù
+            items = paste_from_other_song(song, self.clipboard, song.tracks.index(track), at)
+            if items is None:
+                self.on_message("Not enough tracks below the highlighted one: paste cancelled.")
+                return
+            if self._add_pasted(items):
+                self.on_message(f"Pasted {len(items)} segments from another song as independent copies.", False)
+            return
         sources = [song.tracks.index(c["track"]) for c in self.clipboard if c["track"] in song.tracks]
         if not sources:  # 2026-11-20: prima nessun messaggio (traccia cancellata o altro brano aperto)
             self.on_message("The copied tracks are no longer in the song: nothing to paste.")
             return
-        if row.track not in song.tracks:
-            return
-        shift = song.tracks.index(row.track) - min(sources)
+        shift = song.tracks.index(track) - min(sources)
         if max(sources) + shift >= len(song.tracks):
-            self.on_message("Not enough tracks below the pointer: paste cancelled.")
+            self.on_message("Not enough tracks below the highlighted one: paste cancelled.")
             return
         items = []
         heirs: dict[str, str] = {}  # originale sparito → id del segmento incollato che lo sostituisce
@@ -808,16 +818,23 @@ class TracksView(Gtk.Box):
             items.append((dest, seg, group))
         if not items:
             return
+        if self._add_pasted(items):
+            for c in self.clipboard:  # i Paste successivi fanno cloni del nuovo originale
+                c["origin"] = heirs.get(c["origin"], c["origin"])
+
+    def _add_pasted(self, items: list) -> bool:
+        """Aggiunge i segmenti incollati e li seleziona; se non c'è spazio li mostra in rosso
+        e non aggiunge nulla. 2026-11-23: messo a parte per usarlo anche per l'incolla da un altro brano."""
+        song = self.doc.song
         if not AddSegments.fits(song, items):
             self.on_message("Not enough room there: paste cancelled.")
             self._flash_paste_fail([(t, float(song.meters.bar_start(sg.start_bar) + sg.offset),
                                      float(song.meters.bar_start(sg.start_bar) + sg.offset + sg.length)) for t, sg, _g in items])
-            return
+            return False
         self.doc.execute(AddSegments(items))
-        for c in self.clipboard:  # i Paste successivi fanno cloni del nuovo originale
-            c["origin"] = heirs.get(c["origin"], c["origin"])
         self.selection = [(t, s) for t, s, _g in items]
         self.redraw_all()
+        return True
 
     # --- Segment: duplica, unisci, etichetta -----------------------------------
 
@@ -1240,6 +1257,7 @@ class TracksView(Gtk.Box):
         for r in self.rows:  # Preview della traccia accordi (spento da un altro Solo)
             if getattr(r, "preview", None) is not None:
                 r.preview.sync()
+            r.update_listen_style()  # sfondo giallo (Solo) o rosso (Mute) della riga
 
     def selected_track(self) -> Track | None:
         row = self.list.get_selected_row()
@@ -1352,7 +1370,7 @@ class ListenToggle(Gtk.ToggleButton):
 
 class TrackRow(Gtk.ListBoxRow):
     def __init__(self, view: TracksView, doc: Document, track: Track) -> None:
-        super().__init__()
+        super().__init__(css_classes=["track-row"])  # classe per il bordo della riga selezionata (app.py)
         self.view, self.doc, self.track = view, doc, track
         self.notes: list[tuple[float, float, int, str]] = []  # (inizio, fine, altezza, id segmento)
         self.ranges: dict[str, tuple[int, int]] = {}  # altezze min/max per segmento
@@ -1407,6 +1425,18 @@ class TrackRow(Gtk.ListBoxRow):
         box.append(self.lane)
         self.set_child(box)
         self.refresh()
+        self.update_listen_style()
+
+    def update_listen_style(self) -> None:
+        """Sfondo della riga intera secondo Mute / Solo (CSS .track-solo e .track-mute in app.py).
+        2026-11-23: richiesta dell'utente, un Solo dimenticato non si notava e il brano sembrava muto.
+        Solo vince su Mute, come nel suono: una traccia in Solo e in Mute suona ed è gialla."""
+        solo, mute = self.track.solo, self.track.mute and not self.track.solo
+        for name, on in (("track-solo", solo), ("track-mute", mute)):
+            if on:
+                self.add_css_class(name)
+            else:
+                self.remove_css_class(name)
 
     def _double_click(self, widget: Gtk.Widget, action: Callable[[], None]) -> None:
         click = Gtk.GestureClick()
