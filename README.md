@@ -14,7 +14,7 @@ How it was built: [Building a music editor in Python and GTK 4: exact time, real
 styles](https://medium.com/@antoniogallo.it/building-a-music-editor-in-python-and-gtk-4-exact-time-real-notation-and-reverse-engineered-43151bddffa2)
 (Medium).
 
-![The Tracks tab](docs/screenshots/1-tracks.png)
+![A full arrangement generated from a chord progression with a Yamaha style](docs/screenshots/6c-generated.png)
 
 
 ## What it does
@@ -38,74 +38,135 @@ styles](https://medium.com/@antoniogallo.it/building-a-music-editor-in-python-an
 ## Features
 
 
-### Tracks and segments
+### From a chord progression to a full band
 
-| | |
-|---|---|
-| Tracks | name, clef, General MIDI instrument or drum kit, MIDI channel, default velocity, Mute / Solo |
-| Segments | Select, Create, Move, Split, Resize, Delete tools (`F2`–`F7`), multi-track selection |
-| Linked copies | Duplicate and Paste create **clones**: change the notes of one, all of them change |
-| Editing | Cut / Copy / Paste, Paste Independent, Merge, Make Independent, Label |
-| Song | tempo, key and time-signature changes, copyright notice, free-text Song Notes |
+Play the chords on your keyboard, or bring the progressions you recorded with the **Chord Looper** of a Yamaha arranger
+keyboard: Canovaccio turns them into a **chord track**.
+
+Split it into verse, bridge and chorus, give each part a section of a **Yamaha style** (Main A–D, fills, intro, ending)
+and press **Generate**: drums, bass, piano, guitar, strings, every part of the style is written as a real track that follows
+your chords and the song key.
+
+![A Chord Looper bank split into verse, bridge, chorus and ending](docs/screenshots/6a-chord-looper.png)
+
+![The accompaniment generated from the chord track](docs/screenshots/6c-generated.png)
+
+Every generated part is a normal track: change its instrument, edit its notes, mute it, or export the whole arrangement
+as a standard MIDI file.
+
+The **Chord Editor** shows each chord with its exact position, root, type and bass, quantizes the chords you played live,
+and chooses style, section and final fill for each segment.
+
+![Chord Editor](docs/screenshots/6b-chord-editor.png)
 
 
-### Grid and notation editors
+### Your keyboard's styles, opened up
 
-| | |
-|---|---|
-| Grid (piano roll) | draw, move and resize notes, play keys on the on-screen piano, drum grid with General MIDI names |
-| Notation | edit on the staff, note-value palette (keys `1`–`8`), triplets, on-screen piano to enter notes one after another |
-| Notes menu | Transpose (semitones, octaves, scale steps), Quantize, Velocity with Humanize, Tie, Slur, Staccato |
-| Composer | Chord…, Guitar Chord… (with strum), Chord Symbol…, Detect Chords |
-| Event Editor | notes, controllers, pitch bend and aftertouch as an editable list |
+Open a Yamaha style (`.sty`, `.prs`, `.sst`, `.fps`, `.bcs`, SFF1 and SFF2) and see it as a song: one track per part,
+one segment per section.
+
+Listen to each section, change instruments and sounds, rewrite the notes, and save your version as a `.stile` file: the
+original stays untouched for your keyboard.
+
+![A Yamaha style opened in the Tracks tab](docs/screenshots/6-style-tracks.png)
+
+
+### Piano roll and real sheet music, in sync
+
+Edit the same notes in a **grid** or directly **on the staff**, with the note-value palette (keys `1`–`8`), triplets
+and the on-screen piano.
+
+The notation is real engraving: key and time signatures, ties, slurs, staccato, triplets, automatic beaming and chord
+symbols, drawn with the SMuFL font Bravura.
 
 ![Grid editor](docs/screenshots/2-grid.png)
-
-![Drum grid](docs/screenshots/2b-drum-grid.png)
 
 ![Notation with staccato](docs/screenshots/3-score-staccato.png)
 
 ![Notation with triplets](docs/screenshots/3b-score-triplets.png)
 
+Drums get their own grid, with the General MIDI name of every key.
+
+![Drum grid](docs/screenshots/2b-drum-grid.png)
+
+Notes menu: Transpose (semitones, octaves, scale steps), Quantize, Velocity with Humanize, Tie, Slur, Staccato.
+The **Event Editor** lists notes, controllers, pitch bend and aftertouch for fine editing.
+
+
+### Chords and guitar strums
+
+Write a whole chord by name, or a **guitar chord** from the chord book (`x32010`) with its real notes and a **down or up
+strum** that sounds like a guitar.
+
+**Detect Chords** writes the chord symbols of the notes you played.
+
 ![Strummed guitar chords](docs/screenshots/5-score-strum.png)
 
-
-### Chord track and styles
-
-| | |
-|---|---|
-| Chord track | one per song, filled from a **Chord Looper** bank (`.clb`) or recorded from your keyboard |
-| Chord Editor | each chord with its position, root, type and bass; Quantize; style, section and final fill for each segment |
-| Generate | writes the style's accompaniment into "Style · …" tracks, following the chords and the song key |
-| Styles | Yamaha `.sty`, `.prs`, `.sst`, `.fps`, `.bcs` (SFF1 and SFF2); customised styles saved as `.stile` |
+![Guitar chord dialog](docs/screenshots/5b-guitar-chord-dialog.png)
 
 
-### Sound
+### Tracks and linked segments
 
-| | |
-|---|---|
-| Built-in synth | FluidSynth with any `.sf2` / `.sf3` SoundFont |
-| MIDI ports | send to external keyboards, expanders and synths; choose sounds by name from the port's sound list |
-| Per-output sounds | each track can use a different sound on each output (SoundFont preset or Bank Select + Program Change) |
-| Panic | stops every note and resets volume, pan and effects on all channels |
-| Audio Loopback | hear a USB keyboard's audio through the PC headphones (Linux: PulseAudio / PipeWire) |
+Arrange the song in tracks and segments: move, split, resize, merge and label them with the tools `F2`–`F7`.
+
+**Duplicate** and **Paste** create **clones**: change the notes of one and all of them change, until you make it
+independent.
+
+![The Tracks tab](docs/screenshots/1-tracks.png)
+
+![Segment context menu](docs/screenshots/4-right-click-menu.png)
+
+Each track has its clef, General MIDI instrument or drum kit, MIDI channel, default velocity, Mute and Solo.
+The song has tempo, key and time-signature changes, a copyright notice and free-text Song Notes.
+
+
+### Your sounds, your hardware
+
+Play through the **built-in synthesizer** (FluidSynth, any `.sf2` / `.sf3` SoundFont) or send to your **keyboards,
+expanders and synths** through MIDI ports.
+
+Each track can use a different sound on each output: a preset from any SoundFont on the built-in synth, a sound chosen
+**by name** on your keyboard.
+
+The **Roland FANTOM EX** sound list is included: about 7,200 sounds, expansions too.
+
+![Choosing a Fantom sound by name](docs/screenshots/8-track-sound-fantom.png)
+
+![A SoundFont sound for one track](docs/screenshots/8b-track-soundfont.png)
+
+![Output Devices](docs/screenshots/7-output-devices.png)
+
+
+### Record from your MIDI keyboard
+
+Play on your keyboard and hear it at once with the sound of the selected track; press **Rec** to record, with count-in
+(or *Wait for note*) and metronome.
+
+Notes, sustain pedal, controllers and pitch bend are recorded.
+
+On Linux, **Audio Loopback** plays a USB keyboard's audio through the computer's headphones, together with the
+built-in synth.
+
+![Audio Loopback](docs/screenshots/9-loopback.png)
 
 
 ### File formats
 
-| Format | Open | Save |
-|---|---|---|
-| Canovaccio project `.music` | yes | yes |
-| Customised style `.stile` | yes | yes |
-| Standard MIDI `.mid`, `.midi` | yes | yes (Save as MIDI) |
-| MuseScore `.mscz`, `.mscx` (2.x, 3.x, 4.x) | yes | — |
-| MusicXML `.musicxml`, `.mxl`, `.xml` | yes | — |
-| Rosegarden `.rg` | yes | — |
-| Yamaha styles `.sty`, `.prs`, `.sst`, `.fps`, `.bcs` | yes | — |
-| Chord Looper `.clb` | File › Import Chord Looper… | — |
+| Format                                               | Open                                           | Save               |
+|------------------------------------------------------|------------------------------------------------|--------------------|
+| Canovaccio project `.music`                          | yes                                            | yes                |
+| Customised style `.stile`                            | yes                                            | yes                |
+| Standard MIDI `.mid`, `.midi`                        | yes                                            | yes (Save as MIDI) |
+| MuseScore `.mscz`, `.mscx` (2.x, 3.x, 4.x)           | yes                                            | —                  |
+| MusicXML `.musicxml`, `.mxl`, `.xml`                 | yes                                            | —                  |
+| Rosegarden `.rg`                                     | yes                                            | —                  |
+| Yamaha styles `.sty`, `.prs`, `.sst`, `.fps`, `.bcs` | yes                                            | —                  |
+| Chord Looper `.clb`                                  | as a new song, or Track › Import Chord Looper… | —                  |
 
 Imports keep only what Canovaccio can represent: for example repeats, dynamics, lyrics and ornaments of a score are
 skipped, and its bars are read once, in written order.
+
+Save as MIDI exports the song exactly as it sounds.
 
 
 ## Install the binary
@@ -276,7 +337,8 @@ The first time it starts, Canovaccio asks whether to add itself to your desktop.
 - installs the `canovaccio` command in `~/.local/bin`: a link to the AppImage, or to `canovaccio.sh` when installed
   from source.
 
-A checkbox in the same dialog also makes Canovaccio the default app for MIDI, MusicXML, MuseScore and Yamaha style files;
+A checkbox in the same dialog also makes Canovaccio the default app for MIDI, MusicXML, MuseScore, Yamaha style and Chord
+Looper files;
 without it, Canovaccio only shows up in their "Open With" menu.
 
 Everything goes in your home folder: no administrator rights are needed.
@@ -292,7 +354,6 @@ Notes:
 
 - If the `canovaccio` command is not found in a terminal, `~/.local/bin` is not in your PATH: on many systems it is
   enough to log out and back in.
-- Chord Looper banks only get the icon: load them with File › Import Chord Looper….
 - LaTeX also uses `.sty`: LaTeX files keep their own type, because a Yamaha style is recognised by its content
   (it starts like a MIDI file).
 - If the file manager still shows the old icons, close it (`nemo -q` on Cinnamon, `nautilus -q` on GNOME) and open the
@@ -331,8 +392,9 @@ Mouse wheel, the same in every view: wheel = along the timeline, `Shift`+wheel =
 - With **Select**: click a segment to select it, `Shift`+click to add or remove it, drag on empty space for a rectangle.
 - With **Create** drag on an empty lane to draw a new segment; **Move**, **Split**, **Resize** and **Delete** work on the
   segment you click.
-- **Right-click a segment** (or the Segment menu): Duplicate `Ctrl+D`, Make Independent, Merge, Label… `L`,
-  Event Editor, Import MIDI….
+- **Right-click a segment** (or the Segment menu): Duplicate `Ctrl+D`, Make Independent (clones only), Merge, Label… `L`,
+  Import MIDI…, and the editors that fit the segment: Grid, Notation and Event Editor for notes (no Notation for drums),
+  Chord Editor for the chord track.
 - `Ctrl+C` / `Ctrl+X` and `Ctrl+V` paste **clones** at the red play line, on the highlighted track; `Ctrl+Shift+V` pastes
   independent copies.
 - To copy between songs, copy in the first one, open the second and paste: segments arrive as independent copies,
@@ -362,59 +424,216 @@ The same tools and the Notes menu work in the grid and in the notation:
 
 ### Chords
 
+The **Composer** menu writes whole chords in the grid or in the notation, at the red play line.
+
 - **Composer › Chord…**: root, type, additions (6, 7, maj7, 9, 11, 13, add9), close or open voicing, octave.
-- **Composer › Guitar Chord…**: the chord-book shape (e.g. `x32010`) with real guitar notes, strummed down or up.
 - **Composer › Chord Symbol…**: free text above the staff.
 - **Composer › Detect Chords**: writes the symbols of the chords played by the selected notes.
 
 The chord goes on the red play line and the line moves on, so you can write one chord after another.
 
+The dialog stays open: press **Insert** for each chord, **Close** (or `Esc`) when you are done.
+
+The length of the chord is the note value of the palette (notation) or the Snap (grid).
+
+The chord symbol is written by itself above the staff, only where the chord changes.
+
 ![Chord dialog](docs/screenshots/5c-chord-dialog.png)
+
+
+### Guitar chords
+
+**Composer › Guitar Chord…** writes the chord as a guitarist plays it, with the notes of the six strings, not a block of
+stacked thirds.
+
+1. Choose **Root** (A … G) and **Type**: major, minor, 7, m7, maj7.
+2. The dialog shows the shape as in a chord book, for example `x32010` for C (`x` = string not played), whether it is an
+   open chord or a barre (e.g. "barre at fret 3 (E shape)"), and the real notes, from the low string up.
+3. Choose **Strum**: none, down (low to high) or up (high to low).
+4. Press **Insert**: the chord goes on the red play line, which moves on to the end of the chord.
+
+A strummed chord sounds like a guitar: the strings start one after another, 20 ms apart, and stop together. This is kept in
+Save as MIDI too.
+
+In the notation a ⊓ (down) or V (up) above the chord shows the strum.
+
+`examples/strum-test.music` and `examples/ballad-strum.music` are two examples.
 
 ![Guitar chord dialog](docs/screenshots/5b-guitar-chord-dialog.png)
 
+![Strummed guitar chords](docs/screenshots/5-score-strum.png)
 
-### Chord track and styles
 
-1. **File › Import Chord Looper…** turns a Chord Looper bank into the song's chord track, or press Rec with the "Chords" row
-   highlighted and play the chords on your keyboard.
-2. Double-click the "Chords" name to add the **styles** of the song (`.sty`… or `.stile`).
-3. Double-click a chord segment to open the **Chord Editor**: choose style, section ("Main A — 4 bars") and final fill,
-   correct the chords, then **Generate**.
-4. **Track › Generate All (style)** regenerates every chord segment. **P** on the chord track previews the chords alone.
+### Styles: open and customise
 
-To customise a style, open the `.sty` with File › Open…, change instruments, sounds or notes, and save it: it becomes a
-`.stile` file next to the original, which stays untouched for your keyboard.
+Canovaccio opens the accompaniment styles of Yamaha arranger keyboards (`.sty`, `.prs`, `.sst`, `.fps`, `.bcs`), so you
+can see, hear and change them.
 
-The included `examples/demo.sty` is a small 8-beat style to try this out.
+1. **File › Open…** and choose the style (try the included `examples/demo.sty`).
+2. Each **part** of the style becomes a track, named after its channel and part ("10 Rhythm", "11 Bass", "12 Piano"…).
+3. Each **section** becomes a segment, labelled with its name: Intro A, Main A, Main B, Fill In AA, Ending A…
+4. Play (`Space`) plays the sections one after another; `E` or `G` on a segment shows its notes.
+
+![A style opened in the Tracks tab](docs/screenshots/6-style-tracks.png)
+
+To customise it:
+
+- double-click a track name to change the instrument, or the sound used on each output (see below);
+- edit the notes of a section in the grid or in the notation, as in any song;
+- **File › Save** (`Ctrl+S`) saves a **`.stile`** file next to the original: the `.sty` stays untouched for your keyboard.
+
+A `.stile` opens again with File › Open… and can be used as a style of a song, with your instruments and sounds.
+
+Song Notes (File › Song Notes…) describe how each part follows the chords, as written in the style.
+
+Yamaha "Mega Voice" noises (guitar fret noises, slaps…) go to a separate muted track "… · noises".
+
+Drum kits that have no General MIDI equivalent are listed in the Song Notes and in the status line.
+
+
+### Chord Looper and accompaniment
+
+The **chord track** turns a chord progression into a full accompaniment, using the song's styles.
+
+**1. Get the chords.** Two ways:
+
+- Open a Chord Looper bank (`.clb`), saved by a Yamaha keyboard with the Chord Looper function: **File › Open…** makes
+  a new song with it, **Track › Import Chord Looper…** adds it to the open song. Every memory of the bank (up to 8)
+  becomes a segment of the "Chords" track, "Memory 1", "Memory 2"…, one after the other from bar 1. If the song has no
+  notes, its key is guessed from the chords.
+- Or highlight the "Chords" row in the Tracks tab, press **Rec** and play the chords on your MIDI keyboard. As on an
+  arranger keyboard, the notes are not kept: they become chords (C, Am7, F/A…), on the nearest eighth.
+
+![Chord track from a Chord Looper bank, split and labelled: verse, bridge, chorus, ending](docs/screenshots/6a-chord-looper.png)
+
+**2. Choose the styles.** Double-click the "Chords" name (or **Track › Song Styles…**): in **Song styles** press **Add…**
+and choose one or more `.sty` or `.stile` files. Here you also set the channel used by the chord Preview.
+
+**3. Edit the chords.** Double-click a chord segment to open the **Chord Editor**:
+
+- at the top, **Style**, **Section** (e.g. "Main A — 4 bars") and **Final fill** (it replaces the last bars of the segment);
+- the list of chords: position (bar.beat.tick), root, type, bass for slash chords; **Add** and ✕ to add and remove one;
+- **Quantize** moves the chords to the nearest beat, eighth or bar (played chords are rarely on the beat).
+
+![Chord Editor](docs/screenshots/6b-chord-editor.png)
+
+**4. Generate.** **Generate** in the Chord Editor writes the accompaniment of that segment; **Track › Generate All (style)**
+does it for every chord segment.
+
+The result goes into the **"Style · …"** tracks (one for each part: drums, bass, chords, pad, phrase), with a segment for
+each chord segment, labelled like "Main A + Fill In AA". These are normal tracks: change instruments, edit notes,
+or **File › Save as MIDI…** to get a MIDI file of the whole arrangement.
+
+
+Generating again replaces only what is in that stretch of the "Style · …" tracks. `Ctrl+Z` undoes it in one step.
+
+**P** on the chord track plays the chords alone (Preview), to check them before generating.
+
+![Generated accompaniment](docs/screenshots/6c-generated.png)
 
 Yamaha does not publish the style (`.sty`…) and Chord Looper (`.clb`) formats: Canovaccio reads them following the
 documentation written by the user community, and the accompaniment it generates is an approximation of what a Yamaha
 keyboard plays. Yamaha is a trademark of Yamaha Corporation; Canovaccio is not affiliated with Yamaha.
 
 
-### Sound outputs
+### Output devices
 
-- **File › Output Devices…**: the built-in synth (SoundFont and audio driver) and your MIDI ports.
-- The **Output** menu next to the player chooses the output in use.
-- In the track properties, **On "output"** sets a sound for that output: a SoundFont preset for the built-in synth, or a
-  sound chosen by name (or Bank Select + Program Change) for a MIDI port.
-- **Panic** (toolbar) silences everything and resets the controllers.
+Canovaccio plays through the **built-in synth** (FluidSynth with a SoundFont) or through a **MIDI port**: an external
+keyboard, an expander, a software synth.
 
-Environment variables, used when the built-in synth is set to "automatic": `CANOVACCIO_SF2` (SoundFont file) and
+**File › Output Devices…** lists the outputs. With **+** add one, give it a **Name** (shown in the Output menu and in
+the track properties) and a **Type**:
+
+- **Internal (FluidSynth)**: the **SoundFont** (Choose… a `.sf2` / `.sf3` file, or Automatic) and the **Audio driver**
+  (automatic, or one of FluidSynth's).
+- **MIDI port**: the system's **Port** (↻ rescans the ports); **Send Program Change**, to send each track's instrument at
+  Play (some devices don't want it); the **Sound list** of the device, to choose its sounds by name (see below).
+
+**Save** keeps the outputs in the program's preferences, not in the song. A port that is not connected stays in the list,
+marked "(not connected)".
+
+The **Output** menu next to the player chooses the output in use, even during Play. The status line shows it.
+
+**Panic** (toolbar) silences everything and resets the controllers.
+
+![Output Devices](docs/screenshots/7-output-devices.png)
+
+Environment variables, used when the built-in synth is set to "Automatic": `CANOVACCIO_SF2` (SoundFont file) and
 `CANOVACCIO_AUDIO_DRIVER` (FluidSynth audio driver).
+
+
+### A different sound for a track
+
+By default each track plays its **General MIDI** instrument, so the song sounds right on any output.
+
+To use another sound, choose the output in the **Output** menu first, then double-click the track name: at the bottom,
+**On "output name"**, tick **Sound different from the GM instrument**. The sound is saved in the song, for that output
+only: the same track can use a SoundFont piano on "Internal" and a Fantom piano on "Fantom".
+
+**On the built-in synth**, use any SoundFont, not only the default one:
+
+1. **SoundFont › Choose…** and pick a `.sf2` or `.sf3` file (e.g. a piano or a string SoundFont downloaded from the web).
+2. **Sound**: the list of its presets ("bank:program name"); type a few letters to search, `Enter` picks the first.
+3. **Save**: the SoundFont is loaded next to the default one, only for that track.
+
+![A SoundFont sound for one track](docs/screenshots/8b-track-soundfont.png)
+
+**On a MIDI port**, set Bank Select **MSB**, **LSB** and **Program** (1–128, as in the manuals), or choose the sound by name
+(next section). "Send Program Change" must be on for that output.
+
+Save as MIDI exports only the General MIDI instruments, so the file sounds the same everywhere.
+
+
+### Device sound lists (Roland FANTOM EX)
+
+In Output Devices, give a MIDI port its **Sound list**: then, in the track properties, **Sound** has a search box and fills
+MSB, LSB and Program for you.
+
+Lists included:
+
+- **GM**: the General MIDI sounds and drum kits;
+- **Roland FANTOM EX**: about 7,200 sounds of the FANTOM EX and of all its expansions (EXZ, EXM, EXSN, ACB, Roland Cloud).
+
+Searching: each word you type must be the start of a word of the name, in any order: "e guit" finds "Electric Guitar" and
+"Guitar Electric". On a drum track (channel 10) the list shows only the drum kits.
+
+Sounds of expansions that are not installed on your keyboard simply don't play.
+
+![Choosing a Fantom sound by name](docs/screenshots/8-track-sound-fantom.png)
 
 **Roland FANTOM EX user sounds** aren't in the sound list (they are yours): in the track properties, under On "Fantom", type
 the three numbers. With the number the Fantom shows (e.g. USER 0001):
 
-| User sound type | MSB | LSB | PC |
-|---|---|---|---|
-| User Tone (ZEN-Core) | 87 | (number − 1) ÷ 128, integer part | (number − 1) mod 128, + 1 |
-| User Drum Kit | 86 | as above | as above |
-| User SN-A Tone | 89 | as above | as above |
-| User V-Piano Tone | 90 | as above | as above |
+| User sound type      | MSB | LSB                               | PC                        |
+|----------------------|-----|-----------------------------------|---------------------------|
+| User Tone (ZEN-Core) | 87  | (number − 1) ÷ 128, integer part  | (number − 1) mod 128, + 1 |
+| User Drum Kit        | 86  | as above                          | as above                  |
+| User SN-A Tone       | 89  | as above                          | as above                  |
+| User V-Piano Tone    | 90  | as above                          | as above                  |
 
 Examples: USER 0001 = 87 · 0 · 1, USER 0128 = 87 · 0 · 128, USER 0129 = 87 · 1 · 1, USER 0300 = 87 · 2 · 44.
+
+
+### Audio Loopback (Linux)
+
+Many keyboards, like the Roland FANTOM in VENDOR mode, send their audio to the computer through the USB cable. **File ›
+Audio Loopback…** plays that audio in the computer's headphones or speakers, so you hear the keyboard and the built-in synth
+together, without a mixer.
+
+1. **Input**: the keyboard's USB audio (↻ rescans the inputs).
+2. **Latency (ms)**: lower means less delay; raise it if you hear crackles.
+3. **Enable**: Status becomes "bridge enabled". **Disable** removes it.
+
+The bridge goes to the default output and follows it when you switch to headphones. It stays on after you close Canovaccio,
+until you press Disable or restart the computer.
+
+The input and the latency are remembered for next time.
+
+If the keyboard's input is missing from the list, try **Restart WirePlumber**.
+
+It needs PulseAudio or PipeWire (`pactl`), as on most Linux desktops.
+
+![Audio Loopback](docs/screenshots/9-loopback.png)
 
 
 ### MIDI keyboard and recording
@@ -425,6 +644,12 @@ Examples: USER 0001 = 87 · 0 · 1, USER 0128 = 87 · 0 · 128, USER 0129 = 87 �
   or *Wait for note*; the metronome plays during recording.
 - Notes, sustain pedal, controllers and pitch bend are recorded. The **Event Editor** (Segment menu) lists them for
   fine editing.
+
+The selected track is the one of the editor in front, otherwise the row highlighted in the Tracks tab.
+
+The input port is remembered and opens again at the next start.
+
+![Input Device](docs/screenshots/7b-input-device.png)
 
 
 ### Files
