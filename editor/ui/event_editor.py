@@ -26,8 +26,11 @@ from ..core.model import BEND, CC, POLY_PRESSURE, PRESSURE, ControlEvent, Note, 
 TICKS = 1920  # tick per semibreve
 NOTE = "note"
 KIND_NAMES = {NOTE: "Note", CC: "Controller", BEND: "Pitch Bend", PRESSURE: "Aftertouch", POLY_PRESSURE: "Poly Aftertouch"}
-FILTERS = [("All", None), ("Notes", {NOTE}), ("Controller", {CC}), ("Pitch Bend", {BEND}),
-           ("Aftertouch", {PRESSURE, POLY_PRESSURE})]
+# filtri della tendina Show: (etichetta, tipi mostrati o None = tutti, numero del controller o None = tutti)
+# 2026-11-24: "All but notes" (nascondere le note) e "Volume" (solo i CC7), richieste dell'utente
+FILTERS = [("All", None, None), ("All but notes", {CC, BEND, PRESSURE, POLY_PRESSURE}, None), ("Notes", {NOTE}, None),
+           ("Volume", {CC}, 7), ("Controller", {CC}, None), ("Pitch Bend", {BEND}, None),
+           ("Aftertouch", {PRESSURE, POLY_PRESSURE}, None)]
 ADD_KINDS = [NOTE, CC, BEND, PRESSURE, POLY_PRESSURE]
 CC_NAMES = {1: "Modulation", 2: "Breath", 4: "Foot", 5: "Portamento Time", 6: "Data Entry", 7: "Volume",
             8: "Balance", 10: "Pan", 11: "Expression", 12: "Effect 1", 13: "Effect 2", 16: "General 1",
@@ -82,7 +85,7 @@ class EventEditorView(Gtk.Box):
         self._spans = [song.segment_span(s) for s in segments]
 
         # filtro, aggiungi, elimina
-        self.filter = Gtk.DropDown.new_from_strings([label for label, _k in FILTERS])
+        self.filter = Gtk.DropDown.new_from_strings([label for label, _k, _n in FILTERS])
         self.filter.connect("notify::selected", lambda *_: self.refresh())
         self.add_kind = Gtk.DropDown.new_from_strings([KIND_NAMES[k] for k in ADD_KINDS])
         add = Gtk.Button(label="Add")
@@ -197,7 +200,7 @@ class EventEditorView(Gtk.Box):
         self.segments = current
         if current:
             self._spans = [song.segment_span(s) for s in current]
-        wanted = FILTERS[self.filter.get_selected()][1]
+        _label, wanted, number = FILTERS[self.filter.get_selected()]
         rows = []
         for seg in self.segments:
             group = song.groups[seg.group_id]
@@ -211,7 +214,8 @@ class EventEditorView(Gtk.Box):
                 if 0 <= rel < seg.length:
                     rows.append({"kind": e.kind, "pos": origin + rel, "seg": seg, "group": group, "item": e})
         rows.sort(key=lambda r: (r["pos"], r["kind"] != NOTE))
-        self.rows = [r for r in rows if wanted is None or r["kind"] in wanted]
+        self.rows = [r for r in rows if (wanted is None or r["kind"] in wanted)
+                     and (number is None or r["item"].number == number)]
         self.strings.splice(0, self.strings.get_n_items(), [str(i) for i in range(len(self.rows))])
 
     def _cell(self, index: int, name: str) -> str:

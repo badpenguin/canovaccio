@@ -52,6 +52,20 @@ class NoteEditing:
         self._preview_key: int | None = None  # nota che sta suonando (ascolto)
         self._preview_track: Track | None = None
 
+    # 2026-11-24: avvisa la finestra quando cambia lo Snap (spunta nel menu Grid/Score › Snap)
+    on_snap = None
+
+    def snap_changed(self) -> None:
+        """Lo Snap dell'editor è cambiato: la finestra aggiorna il menu."""
+        if self.on_snap is not None:
+            self.on_snap()
+
+    def open_selected_note(self) -> None:
+        """Notes > Properties…: proprietà della nota selezionata (una sola), come il doppio click."""
+        placed = self._selected_placed()
+        if len(placed) == 1:
+            self._open_note(placed[0])
+
     @property
     def unit(self) -> Fraction:
         """Passo dell'aggancio (e durata minima di una nota)."""

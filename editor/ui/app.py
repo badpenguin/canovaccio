@@ -36,6 +36,13 @@ headerbar, .titlebar { border-radius: 0; }
 TOOLBAR_CSS = """
 .toolbar button { min-width: 32px; min-height: 32px; padding: 0; }
 .toolbar separator { margin: 4px 8px; min-width: 1px; background: alpha(currentColor, 0.3); }
+/* 2026-11-24: toolbar che va a capo (toolbar.Toolbar): ogni palette in una scatola "palette"; il divisore fra due
+   palette della stessa riga è un'immagine di sfondo larga 1 px (non cambia le misure: niente relayout) */
+.toolbar > .palette { padding: 0 8px; }
+.toolbar > .palette.after-palette {
+  background-image: linear-gradient(alpha(currentColor, 0.3), alpha(currentColor, 0.3));
+  background-size: 1px 70%; background-position: left center; background-repeat: no-repeat;
+}
 .status-error { color: #c01c28; font-weight: bold; }
 .listen-toggle { min-width: 22px; min-height: 22px; padding: 0; }
 .note-key { font-size: 8px; margin: 1px 0 0 2px; }  /* numero del tasto sui valori di nota */
@@ -47,6 +54,19 @@ row:selected .listen-toggle { color: black; }  /* M e S neri anche sulla traccia
    della traccia selezionata non si vedeva); la selezione resta riconoscibile dal bordo del tema. */
 row.track-solo { background-color: alpha(#f6d32d, 0.45); }
 row.track-mute { background-color: alpha(#e01b24, 0.25); }
+/* 2026-11-24: mixer di prova: colonne separate da una linea; M rosso e S giallo quando accesi (come i colori delle
+   righe in Mute e in Solo); lucchetto evidenziato con Lock; numeri a cifre fisse */
+.mixer-strip { padding: 8px 4px; border-right: 1px solid alpha(currentColor, 0.15); }
+.mixer-strip:last-child { border-right: none; }
+.mixer-channel, .mixer-value { font-feature-settings: "tnum"; }
+.mixer-listen { min-width: 20px; min-height: 18px; padding: 0; border-radius: 0; }
+.mixer-mute:checked { background: alpha(#e01b24, 0.45); color: black; }
+.mixer-solo:checked { background: alpha(#f6d32d, 0.8); color: black; }
+.mixer-mode:checked { background: alpha(@theme_selected_bg_color, 0.35); }
+.mixer-write:checked { background: alpha(#e66100, 0.6); color: black; }
+.mixer-delete { min-width: 22px; min-height: 22px; padding: 0; }
+.mixer-name-box { background: alpha(currentColor, 0.06); }
+.mixer-name { padding: 2px 2px; font-size: smaller; }
 /* 2026-11-23: traccia selezionata con un bordo del colore di selezione del tema (richiesta dell'utente):
    resta riconoscibile anche sopra il giallo del Solo e il rosso del Mute */
 row.track-row:selected { outline: 2px solid @theme_selected_bg_color; outline-offset: -2px; }

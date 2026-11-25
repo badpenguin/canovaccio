@@ -7,7 +7,9 @@ from fractions import Fraction
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import GLib, Gtk  # noqa: E402
+gi.require_version("Gsk", "4.0")
+gi.require_version("Graphene", "1.0")
+from gi.repository import GLib, Graphene, Gsk, Gtk  # noqa: E402
 
 from ..engraving.smufl import FONT_FAMILY  # noqa: E402
 from ..output.transport import State  # noqa: E402
@@ -15,19 +17,74 @@ from ..session import Session  # noqa: E402
 from .icons import themed, tool_icon  # noqa: E402
 
 
-class Toolbar(Gtk.Box):
-    """Fila di palette separate da un divisore."""
+class Toolbar(Gtk.Widget):
+    """Fila di palette separate da un divisore; su uno schermo stretto le palette vanno a capo.
+
+    2026-11-24 (richiesta dell'utente): prima una Gtk.Box a una riga, che sotto i 1360 px circa tagliava
+    a destra Rec e il pulsante del mixer. Si va a capo per palette intere, come le parole di un testo:
+    ogni riga si riempie finché c'è posto (una Gtk.FlowBox, provata prima, allinea le palette in
+    colonne come una tabella e spreca spazio). Il divisore lo disegna il CSS (classe "after-palette",
+    app.TOOLBAR_CSS) solo fra palette della stessa riga: quelle a inizio riga non ce l'hanno."""
+
+    ROW_SPACING = 2  # px fra due righe
 
     def __init__(self) -> None:
-        super().__init__(spacing=6, margin_start=6, margin_end=6, margin_top=4, margin_bottom=4)
-        self.add_css_class("toolbar")
+        super().__init__(margin_start=6, margin_end=6, margin_top=4, margin_bottom=4, css_classes=["toolbar"])
         self._palettes: list[Gtk.Widget] = []
 
     def add_palette(self, palette: Gtk.Widget) -> None:
-        if self._palettes:
-            self.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))  # stile in app.TOOLBAR_CSS
-        self._palettes.append(palette)
-        self.append(palette)
+        wrapper = Gtk.Box(css_classes=["palette"])  # padding e divisore (CSS)
+        wrapper.append(palette)
+        wrapper.set_parent(self)
+        self._palettes.append(wrapper)
+
+    def do_dispose(self) -> None:
+        for wrapper in self._palettes:
+            wrapper.unparent()
+        self._palettes = []
+
+    def do_get_request_mode(self) -> Gtk.SizeRequestMode:
+        return Gtk.SizeRequestMode.HEIGHT_FOR_WIDTH
+
+    def _rows(self, width: int) -> list[list[tuple[Gtk.Widget, int, int]]]:
+        """Le palette divise in righe per la larghezza `width`: [(palette, larghezza, altezza)] per riga."""
+        rows: list[list[tuple[Gtk.Widget, int, int]]] = [[]]
+        used = 0
+        for wrapper in self._palettes:  # come le parole: a capo quando la prossima non ci sta più
+            if not wrapper.get_visible():
+                continue
+            _min_w, nat_w, _b1, _b2 = wrapper.measure(Gtk.Orientation.HORIZONTAL, -1)
+            _min_h, nat_h, _b3, _b4 = wrapper.measure(Gtk.Orientation.VERTICAL, nat_w)
+            if rows[-1] and width >= 0 and used + nat_w > width:
+                rows.append([])
+                used = 0
+            rows[-1].append((wrapper, nat_w, nat_h))
+            used += nat_w
+        return rows
+
+    def do_measure(self, orientation: Gtk.Orientation, for_size: int) -> tuple[int, int, int, int]:
+        sizes = [w.measure(Gtk.Orientation.HORIZONTAL, -1) for w in self._palettes if w.get_visible()]
+        if orientation == Gtk.Orientation.HORIZONTAL:
+            # minimo: la palette più larga (tutte su righe diverse); naturale: tutte su una riga
+            return max((s[1] for s in sizes), default=0), sum(s[1] for s in sizes), -1, -1
+        rows = self._rows(for_size)
+        height = sum(max((h for _w, _ww, h in row), default=0) for row in rows)
+        height += self.ROW_SPACING * max(len(rows) - 1, 0)
+        return height, height, -1, -1
+
+    def do_size_allocate(self, width: int, height: int, baseline: int) -> None:
+        y = 0
+        for row in self._rows(width):
+            row_h = max((h for _w, _ww, h in row), default=0)
+            x = 0
+            for index, (wrapper, w, _h) in enumerate(row):
+                transform = Gsk.Transform().translate(Graphene.Point().init(x, y))
+                wrapper.allocate(w, row_h, -1, transform)
+                divided = index > 0  # divisore solo se non è la prima della riga (lo sfondo non cambia le misure)
+                if wrapper.has_css_class("after-palette") != divided:
+                    (wrapper.add_css_class if divided else wrapper.remove_css_class)("after-palette")
+                x += w
+            y += row_h + self.ROW_SPACING
 
 
 class PlayerPalette(Gtk.Box):
@@ -298,7 +355,7 @@ class NoteValuesPalette(Gtk.Box):
         self.append(t)
 
 
-# Snap a pulsanti: (glifo SMuFL o None per "Off", valore, nome)
+# Snap a pulsanti: (glifo SMuFL o None per "Off", valore, nome); il nome è anche il valore del menu Grid/Score › Snap
 SNAP_BUTTONS = [("\uECA2", Fraction(1), "1/1"), ("\uECA3", Fraction(1, 2), "1/2"),
                 ("\uECA5", Fraction(1, 4), "1/4"), ("\uECA7", Fraction(1, 8), "1/8"),
                 ("\uECA9", Fraction(1, 16), "1/16"), ("\uECAB", Fraction(1, 32), "1/32"), (None, None, "Off")]
@@ -326,4 +383,18 @@ def snap_buttons(default: Fraction | None, on_change) -> Gtk.Box:
         b.set_active(value == default)
         b.connect("toggled", lambda btn, v=value: btn.get_active() and on_change(v))
         box.append(b)
+        box.snap_buttons = getattr(box, "snap_buttons", {}) | {name: b}  # per select_snap (menu Snap)
     return box
+
+
+def select_snap(box: Gtk.Box, name: str) -> None:
+    """Preme il pulsante Snap di nome `name` ("1/8", "Off"…): come un click, chiama `on_change`.
+    2026-11-24: per il menu Grid/Score › Snap, sincronizzato con i pulsanti."""
+    button = box.snap_buttons.get(name)
+    if button is not None:
+        button.set_active(True)
+
+
+def snap_name(value: Fraction | None) -> str:
+    """Nome dello Snap per il menu: "1/8", "Off"."""
+    return next(name for _glyph, v, name in SNAP_BUTTONS if v == value)

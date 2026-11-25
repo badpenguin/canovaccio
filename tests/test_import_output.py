@@ -512,7 +512,7 @@ def test_import_yamaha_style_sections_and_drums(tmp_path):
 
 
 def test_example_style_demo_sty_generates_on_chords():
-    """examples/demo.sty (tools/make_demo_sty.py, 2026-11-23): lo stile pubblicabile del progetto
+    """examples/demo.sty (2026-11-23, scritto da zero): lo stile pubblicabile del progetto
     si importa con le sue sezioni e parti e genera l'accompagnamento sulla traccia accordi."""
     from editor.core.arrange import generation_command
     from editor.core.chord_track import ChordEvent

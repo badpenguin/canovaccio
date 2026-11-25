@@ -129,6 +129,29 @@ def chord_track_from_clb(song: Song, path: str | Path) -> tuple[Track, list[Grou
     return Track("Chords", segments=segments, kind=CHORDS, channel=channel), groups
 
 
+CLB_EXTENSION = ".clb"
+
+
+def is_chord_looper(path: str | Path) -> bool:
+    """True per un banco del Chord Looper (estensione .clb, maiuscola o minuscola)."""
+    return Path(path).suffix.lower() == CLB_EXTENSION
+
+
+def song_from_clb(path: str | Path) -> Song:
+    """File > Open… di un .clb (2026-11-24, richiesta dell'utente): brano nuovo, vuoto, con la sola
+    traccia accordi del banco (come Track > Import Chord Looper… su un brano vuoto) e la tonalità
+    ricavata dagli accordi. Titolo = nome del file."""
+    song = Song(title=Path(path).stem)
+    track, groups = chord_track_from_clb(song, path)
+    for group in groups:
+        song.groups[group.id] = group
+    song.tracks.append(track)
+    key = guess_key(song, track, groups)
+    if key is not None:
+        song.keys.set(0, key)
+    return song
+
+
 def guess_key(song: Song, track: Track, groups: list[Group]):
     """Tonalità ricavata dagli accordi della traccia accordi appena letta (core.chord_track.detect_key)."""
     from ..core.chord_track import detect_key

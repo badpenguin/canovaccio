@@ -105,11 +105,18 @@ def chord_tones(kind: int, scale: tuple[int, ...], key) -> list[int]:
     return sorted(tones)
 
 
+# 2026-11-24: controller di mixaggio delle parti (volume, pan, reverb, chorus) che Generate porta nelle
+# tracce "Style · …"; prima si copiavano solo le note e quelle tracce suonavano col volume di default
+MIX_CONTROLS = (7, 10, 91, 93)
+
+
 @dataclass
 class Pattern:
     length: Fraction  # durata della sezione (semibrevi)
     notes: list[Note]  # posizioni dall'inizio della sezione
     rule: StyleRule | None
+    # controller di MIX_CONTROLS in vigore all'inizio della sezione, nello stile: numero → valore
+    controls: dict[int, int] = field(default_factory=dict)
 
 
 @dataclass
@@ -309,6 +316,29 @@ def _play(n: Note, on: Fraction, off: Fraction, part: Part, rule: StyleRule | No
 # --- scrittura nelle tracce dello stile -----------------------------------------------
 
 
+def _mix_events(data: StyleData, channel: int, seg_start: Fraction, seg_end: Fraction, seg) -> list:
+    """Volume, pan, reverb e chorus della parte (MIX_CONTROLS) all'inizio del segmento generato e, se
+    cambiano, all'inizio del fill: i valori che lo stile ha all'inizio di quella sezione. Più parti sullo
+    stesso canale (varianti): vale la prima che ha il controller.
+    2026-11-24: prima Generate copiava solo le note (segnalato dall'utente: volumi dello stile persi)."""
+    from .model import CC, ControlEvent
+
+    parts = [p for p in data.parts if p.channel == channel]
+    events, current = [], {}
+    for name, start, _end, _loop in _blocks(seg_start, seg_end, data, seg.section, seg.fill):
+        controls: dict[int, int] = {}
+        for part in parts:  # la prima parte che ha il controller vince
+            pattern = part.patterns.get(name)
+            for number, value in (pattern.controls if pattern else {}).items():
+                controls.setdefault(number, value)
+        for number, value in sorted(controls.items()):  # solo ciò che cambia rispetto al tratto prima
+            if current.get(number) != value:
+                events.append(ControlEvent(start - seg_start, CC, number, value))
+                current[number] = value
+    return events
+
+
+
 def _part_title(name: str) -> str:
     """"12 ClnGt (2)" → "ClnGt"."""
     words = name.split(" ", 1)
@@ -377,7 +407,7 @@ def generation_command(song, segments: list, load) -> tuple[object | None, list[
                 style_tracks[channel] = track
                 new_tracks.append(track)
             bars = song.meters.bar_ceil(end) - song.meters.bar_at(start)
-            g = Group(seg.section, max(bars, 1), notes)
+            g = Group(seg.section, max(bars, 1), notes, events=_mix_events(data, channel, start, end, seg))
             bar, offset = song.split_position(start)
             text = seg.section + (f" + {seg.fill}" if seg.fill else "")
             added.append((track, Segment(g.id, bar, end - start, 0, offset, label=text), g))

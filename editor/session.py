@@ -11,6 +11,7 @@ from typing import Callable
 from .core.document import Document
 from .core.project import EXTENSION, STYLE_EXTENSION, load_project, save_project
 from .exporter.midi import export_midi
+from .importer.chord_looper import is_chord_looper, song_from_clb
 from .importer.midi import import_midi
 from .importer.musescore import import_musescore, is_musescore
 from .importer.musicxml import import_musicxml, is_musicxml
@@ -71,7 +72,7 @@ class Session:
 
     def open_path(self, path: str | Path) -> Document:
         """Apre un progetto .music o importa un file MIDI, uno stile, un progetto Rosegarden,
-        una partitura MuseScore o MusicXML."""
+        una partitura MuseScore o MusicXML, un banco del Chord Looper."""
         if Path(path).suffix.lower() in (EXTENSION, STYLE_EXTENSION):
             return self._open(load_project(path), str(path), str(path))
         if Path(path).suffix.lower() == ".rg":  # progetto Rosegarden (2026-11-20)
@@ -82,6 +83,8 @@ class Session:
             return self._open(import_musicxml(path), str(path), None)
         if is_style(path):  # stile Yamaha
             return self._open(import_style(path), str(path), None)
+        if is_chord_looper(path):  # banco del Chord Looper: brano nuovo con la traccia accordi (2026-11-24)
+            return self._open(song_from_clb(path), str(path), None)
         return self._open(import_midi(path), str(path), None)
 
     def open_midi(self, path: str | Path) -> Document:

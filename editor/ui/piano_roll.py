@@ -95,6 +95,7 @@ class PianoRollView(NoteEditing, Gtk.Box):
 
         bar = Gtk.Box(spacing=2, margin_start=6, margin_end=6, margin_top=2, margin_bottom=2, halign=Gtk.Align.END)  # toolbar inferiore
         snap = snap_buttons(SNAPS[DEFAULT_SNAP][1], self.set_snap)  # Snap a pulsanti (simboli delle note)
+        self.snap_box = snap  # per il menu Grid › Snap (select_snap)
         snap.set_margin_end(12)
         bar.append(snap)
         for icon, step in (("zoom-out-symbolic", 1 / 1.25), ("zoom-in-symbolic", 1.25)):
@@ -268,6 +269,7 @@ class PianoRollView(NoteEditing, Gtk.Box):
         """Snap scelto in basso: cambia anche le linee della griglia."""
         self.snap = value
         self.area.queue_draw()
+        self.snap_changed()
 
     def _cache_notes(self) -> None:
         """Note della traccia, ricalcolate solo quando cambia il documento."""
@@ -653,8 +655,10 @@ class PianoRollView(NoteEditing, Gtk.Box):
         self.area.queue_draw()
 
     def on_tick(self) -> bool:
-        if bool(self.selection) != self._had_selection:  # menu Notes: attivo solo con note selezionate
-            self._had_selection = bool(self.selection)
+        # menu Notes: attivo solo con note selezionate; 2026-11-24: si confronta il numero di note, non solo
+        # "vuota o no", perché Notes › Properties vale con una nota sola (prima Select All non lo aggiornava)
+        if len(self.selection) != self._had_selection:
+            self._had_selection = len(self.selection)
             self.on_selection()
         pos = self.transport.position
         if pos != getattr(self, "_last_pos", None):

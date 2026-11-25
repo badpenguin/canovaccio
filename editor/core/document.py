@@ -583,6 +583,16 @@ class Document:
         top = self._undo[-1] if self._undo else None
         return self._touched or top is not self._saved_top
 
+    @property
+    def can_undo(self) -> bool:
+        """C'è un passo da annullare (Edit > Undo attivo). 2026-11-24."""
+        return bool(self._undo)
+
+    @property
+    def can_redo(self) -> bool:
+        """C'è un passo da rifare (Edit > Redo attivo). 2026-11-24."""
+        return bool(self._redo)
+
     def touch(self) -> None:
         """Una modifica che non passa da un comando (non entra in Ctrl+Z) ma va salvata."""
         self._touched = True

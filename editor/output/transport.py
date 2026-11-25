@@ -15,6 +15,7 @@ from typing import Callable, Protocol
 
 from .backend import OutputBackend
 from .performance import CONTROL_EVENTS, Control, NoteOff, NoteOn, Performance
+from ..core.mixer import DEFAULT_VOLUME  # CC7 di default del GM (traccia senza CC7 nel brano)
 
 
 class Clock(Protocol):
@@ -53,6 +54,10 @@ class Transport:
         self._controls_ok: set[str] | None = None  # tracce i cui controlli passano (None = da ricalcolare)
         self.loop: tuple[float, float] | None = None  # (inizio, fine) in secondi: ripete fra i due
         self._sounding: dict[tuple[str, int], int] = {}  # (traccia, nota) → note on in corso
+        # 2026-11-24: Lock del mixer di prova: traccia → volume (CC7) che sostituisce i CC7 del brano
+        self.volume_locks: dict[str, int] = {}
+        # cursore del mixer mosso senza Lock: traccia → volume, valido finché il brano non manda un suo CC7
+        self.volume_tries: dict[str, int] = {}
 
     # --- API ---------------------------------------------------------------
 
@@ -124,6 +129,40 @@ class Transport:
             # vigore (volume, pan, pitch bend, pedale): prima suonavano con quelli rimasti nel synth
             if revived and self.state is State.PLAYING:
                 self._chase(self.position, revived)
+
+    def set_volume_lock(self, track_id: str, value: int | None) -> None:
+        """Mixer di prova (2026-11-24): con un valore la traccia suona a quel volume e i suoi CC7 del brano si
+        ignorano (anche nel chase); None toglie il Lock e rimanda i controlli del brano in vigore."""
+        with self._lock:
+            if value is None:
+                if self.volume_locks.pop(track_id, None) is not None:
+                    # senza CC7 nel brano il volume torna quello di default del GM
+                    self.backend.send(Control(track_id, 7, DEFAULT_VOLUME))
+                    self._chase(self.position, {track_id})
+                return
+            self.volume_locks[track_id] = value
+            self.volume_tries.pop(track_id, None)
+            self._send(Control(track_id, 7, value))
+
+    def try_volume(self, track_id: str, value: int) -> None:
+        """Mixer, cursore mosso senza Lock (2026-11-24, correzione dell'utente): il volume si sente subito, ma il
+        prossimo CC7 del brano su quella traccia (o il chase di play e salti) lo rimette com'è nel brano."""
+        with self._lock:
+            if track_id in self.volume_locks:  # con Lock vale il Lock
+                self.set_volume_lock(track_id, value)
+                return
+            self.volume_tries[track_id] = value
+            self.backend.send(Control(track_id, 7, value))
+
+    def forget_tries(self) -> None:
+        """Chiusura del mixer: le prove senza Lock finiscono subito, torna il volume del brano in vigore."""
+        with self._lock:
+            ids = set(self.volume_tries)
+            self.volume_tries.clear()
+            for track_id in ids:
+                self.backend.send(Control(track_id, 7, DEFAULT_VOLUME))  # traccia senza CC7: il default
+            if ids:
+                self._chase(self.position, ids)
 
     def preview(self, track_id: str, key: int, velocity: int | None) -> None:
         """Suona (velocity) o ferma (None) una nota fuori dal playback, es. click sulla tastiera."""
@@ -235,6 +274,10 @@ class Transport:
     # --- interni -----------------------------------------------------------
 
     def _send(self, event) -> None:
+        if isinstance(event, Control) and event.control == 7 and event.track_id in self.volume_locks:
+            event = Control(event.track_id, 7, self.volume_locks[event.track_id])  # Lock del mixer: comanda lui
+        elif isinstance(event, Control) and event.control == 7:
+            self.volume_tries.pop(event.track_id, None)  # un CC7 del brano: la prova senza Lock finisce
         if isinstance(event, CONTROL_EVENTS):  # controller, pitch bend, aftertouch
             if self._controls_ok is None:
                 # 2026-11-20: i controlli di una traccia silenziata passano se il suo canale lo usa
@@ -270,6 +313,10 @@ class Transport:
                 latest[(type(ev), ev.track_id, getattr(ev, "control", getattr(ev, "key", 0)))] = ev
         for ev in latest.values():
             self._send(ev)
+        # Lock del mixer: il volume va mandato anche se la traccia non ha CC7 (dopo lo Stop il synth è al default)
+        for track_id, value in self.volume_locks.items():
+            if tracks is None or track_id in tracks:
+                self._send(Control(track_id, 7, value))
 
     def _panic(self) -> None:
         self._sounding.clear()

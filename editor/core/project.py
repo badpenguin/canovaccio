@@ -38,7 +38,30 @@ def _unkey(d: dict) -> Key:
     return Key(Spelling.parse(d["tonic"]), MODES[d["mode"]])
 
 
-def song_to_dict(song: Song) -> dict:
+def _relative(path: str, base: Path | None) -> str:
+    """Percorso di uno stile da scrivere nel .music: relativo alla cartella del file (con "/") se lo stile sta
+    lì o in una sottocartella, altrimenti com'è (assoluto).
+    2026-11-24: così un .music che usa uno stile accanto a sé (es. examples/) funziona anche su un altro PC
+    o spostando la cartella intera; uno stile altrove resta assoluto, perché un "../../" si romperebbe
+    spostando solo il .music."""
+    if not path or base is None:
+        return path
+    try:
+        return Path(path).resolve().relative_to(base.resolve()).as_posix()
+    except ValueError:  # fuori dalla cartella del .music
+        return path
+
+
+def _absolute(path: str, base: Path | None) -> str:
+    """Percorso di uno stile letto dal .music: un relativo si risolve dalla cartella del file; in memoria i
+    percorsi sono sempre assoluti (file salvati prima del 2026-11-24: già assoluti, restano così)."""
+    if not path or base is None or Path(path).is_absolute():
+        return path
+    return str((base / path).resolve())
+
+
+def song_to_dict(song: Song, base: Path | None = None) -> dict:
+    """Il brano come dizionario JSON. `base`: cartella del .music, per scrivere relativi i percorsi degli stili."""
     return {
         "version": VERSION,
         "title": song.title,
@@ -64,21 +87,22 @@ def song_to_dict(song: Song) -> dict:
         "tracks": [
             {"id": t.id, "name": t.name, "program": getattr(t.instrument, "program", 0),
              "percussion": t.instrument.is_percussion, "clef": t.clef.name, "output": t.output,
-             "kind": t.kind, "styles": list(t.styles), "channel": t.channel, "velocity": t.velocity, "mute": t.mute, "solo": t.solo,
+             "kind": t.kind, "styles": [_relative(s, base) for s in t.styles], "channel": t.channel, "velocity": t.velocity, "mute": t.mute, "solo": t.solo,
              "sounds": {out: {"program": s.program, "bank": s.bank, "lsb": s.lsb, "soundfont": s.soundfont}
                         for out, s in t.sounds.items()},
              "segments": [
                  {"id": s.id, "group": s.group_id, "start_bar": s.start_bar, "offset": _f(s.offset),
                   "length": _f(s.length), "trim": _f(s.trim), "transpose": s.transpose,
                   "label": s.label, "clone_of": s.clone_of,
-                  "style": s.style, "section": s.section, "fill": s.fill}
+                  "style": _relative(s.style, base), "section": s.section, "fill": s.fill}
                  for s in t.segments]}
             for t in song.tracks
         ],
     }
 
 
-def song_from_dict(d: dict) -> Song:
+def song_from_dict(d: dict, base: Path | None = None) -> Song:
+    """Il brano dal dizionario JSON. `base`: cartella del .music, da cui si risolvono i percorsi relativi degli stili."""
     # 2026-11-23: il campo "format" (firma "todo-musician") è stato tolto, scelta dell'utente: legarlo al
     # nome del programma rendeva illeggibili i file salvati se il nome cambia. Non si scrive più e, nei
     # file vecchi che lo hanno ancora, si ignora.
@@ -111,20 +135,22 @@ def song_from_dict(d: dict) -> Song:
     for t in d["tracks"]:
         segments = [Segment(s["group"], s["start_bar"], F(s["length"]), s.get("transpose", 0), F(s.get("offset", "0")),
                             F(s.get("trim", "0")), s.get("label", ""), s.get("clone_of"), id=s["id"],
-                            style=s.get("style", ""), section=s.get("section", ""), fill=s.get("fill", ""))
+                            style=_absolute(s.get("style", ""), base), section=s.get("section", ""), fill=s.get("fill", ""))
                     for s in t["segments"]]
         song.tracks.append(Track(
             t["name"], GMInstrument(t.get("program", 0), t.get("percussion", False)),
             CLEFS.get(t.get("clef", "treble"), CLEFS["treble"]), segments, t.get("output", "default"),
             id=t["id"], channel=t.get("channel", 1), velocity=t.get("velocity", 100),
-            mute=t.get("mute", False), solo=t.get("solo", False), kind=t.get("kind", "notes"), styles=list(t.get("styles", [])),
+            mute=t.get("mute", False), solo=t.get("solo", False), kind=t.get("kind", "notes"),
+            styles=[_absolute(s, base) for s in t.get("styles", [])],
             sounds={out: Sound(s.get("program", 0), s.get("bank", 0), s.get("lsb", 0), s.get("soundfont", ""))
                     for out, s in t.get("sounds", {}).items()}))
     return song
 
 
 def save_project(song: Song, path: str | Path) -> None:
-    data = json.dumps(song_to_dict(song), ensure_ascii=False, indent=1).encode("utf-8")
+    """Scrive il .music (gzip); gli stili che stanno nella sua cartella si salvano con percorso relativo."""
+    data = json.dumps(song_to_dict(song, Path(path).parent), ensure_ascii=False, indent=1).encode("utf-8")
     tmp = Path(str(path) + ".tmp")
     with gzip.open(tmp, "wb") as f:  # prima su un file temporaneo: un errore non rovina il file buono
         f.write(data)
@@ -132,5 +158,6 @@ def save_project(song: Song, path: str | Path) -> None:
 
 
 def load_project(path: str | Path) -> Song:
+    """Legge il .music; i percorsi relativi degli stili si risolvono dalla sua cartella."""
     with gzip.open(path, "rb") as f:
-        return song_from_dict(json.loads(f.read().decode("utf-8")))
+        return song_from_dict(json.loads(f.read().decode("utf-8")), Path(path).parent)

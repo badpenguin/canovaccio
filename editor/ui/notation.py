@@ -137,7 +137,8 @@ class NotationView(NoteEditing, Gtk.Box):
 
         bar = Gtk.Box(spacing=2, margin_start=6, margin_end=6, margin_top=2, margin_bottom=2, halign=Gtk.Align.END)  # toolbar inferiore
         # aggancio della notazione (indipendente dalla griglia), a pulsanti con i simboli delle note
-        snap = snap_buttons(SNAPS[DEFAULT_SNAP][1], lambda v: setattr(self, "snap", v))
+        snap = snap_buttons(SNAPS[DEFAULT_SNAP][1], self.set_snap)
+        self.snap_box = snap  # per il menu Score › Snap (select_snap)
         snap.set_margin_end(12)
         bar.append(snap)
         for icon, step in (("zoom-out-symbolic", -1), ("zoom-in-symbolic", 1)):
@@ -178,6 +179,11 @@ class NotationView(NoteEditing, Gtk.Box):
             page = max(page, 1)
             upper = max(upper, page)
             adj.configure(min(adj.get_value(), upper - page), 0, upper, SCROLL_STEP, page * 0.9, page)
+
+    def set_snap(self, value: Fraction | None) -> None:
+        """Snap scelto in basso (o dal menu Score › Snap)."""
+        self.snap = value
+        self.snap_changed()
 
     def zoom_step(self, direction: int) -> None:
         """+1 ingrandisce, -1 rimpicciolisce, 0 torna alla dimensione normale."""
@@ -679,8 +685,10 @@ class NotationView(NoteEditing, Gtk.Box):
         return offsets
 
     def on_tick(self) -> bool:
-        if bool(self.selection) != self._had_selection:  # menu Notes: attivo solo con note selezionate
-            self._had_selection = bool(self.selection)
+        # menu Notes: attivo solo con note selezionate; 2026-11-24: si confronta il numero di note, non solo
+        # "vuota o no", perché Notes › Properties vale con una nota sola (prima Select All non lo aggiornava)
+        if len(self.selection) != self._had_selection:
+            self._had_selection = len(self.selection)
             self.on_selection()
         pos = self.transport.position
         if pos != self._last_pos:

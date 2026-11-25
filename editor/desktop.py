@@ -29,7 +29,8 @@ log = logging.getLogger(__name__)
 
 # Tipi di file nuovi registrati per l'utente: (tipo, descrizione, tipo da cui deriva, estensione, magic).
 # 2026-11-23: gli stessi che prima il README faceva copiare a mano. Il .sty si riconosce dal contenuto
-# (comincia come un MIDI), così i .sty di LaTeX restano dei loro; il .clb ha solo l'icona (si importa).
+# (comincia come un MIDI), così i .sty di LaTeX restano dei loro.
+# 2026-11-24: il .clb non ha più solo l'icona: si apre come brano nuovo (fra i tipi "anche", come il .sty).
 NEW_TYPES = (
     ("application/x-canovaccio-project", "Canovaccio project", "application/gzip", "*.music", None),
     ("application/x-canovaccio-style", "Canovaccio style", "application/gzip", "*.stile", None),
@@ -40,7 +41,8 @@ NEW_TYPES = (
 OWN_TYPES = ("application/x-canovaccio-project", "application/x-canovaccio-style")
 # tipi che apre anche, già usati da altri programmi: predefinito solo se l'utente lo sceglie
 OTHER_TYPES = ("audio/midi", "audio/x-midi", "application/vnd.recordare.musicxml+xml",
-               "application/vnd.recordare.musicxml", "application/x-musescore", "audio/x-yamaha-style")
+               "application/vnd.recordare.musicxml", "application/x-musescore", "audio/x-yamaha-style",
+               "application/x-yamaha-chord-looper")
 
 ICON = Path(__file__).resolve().parent / "resources" / "icons" / "hicolor" / "scalable" / "apps" / f"{APP_ID}.svg"
 

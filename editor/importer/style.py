@@ -348,7 +348,8 @@ def load_style_data(path: str | Path):
 
 @lru_cache(maxsize=8)
 def _load_style_data(path: str, _mtime: float):
-    from ..core.arrange import Part, Pattern, StyleData
+    from ..core.arrange import MIX_CONTROLS, Part, Pattern, StyleData
+    from ..core.model import CC
 
     if path.lower().endswith(STYLE_FILE):
         from ..core.project import load_project
@@ -364,10 +365,17 @@ def _load_style_data(path: str, _mtime: float):
                     getattr(track.instrument, "program", 0), instrument=track.instrument,
                     sounds=dict(track.sounds))
         placed = list(song.placed_notes(track))
+        # 2026-11-24: volume, pan, reverb e chorus della parte (eventi dei segmenti, in ordine), per Generate
+        mix = [(pos, e) for pos, e in song.placed_events(track) if e.kind == CC and e.number in MIX_CONTROLS]
         for seg in track.segments:
             start, _end = song.segment_span(seg)
             notes = [p.note.copy(start=p.start - start, midi=p.midi) for p in placed if p.segment is seg]
-            part.patterns[seg.label] = Pattern(seg.length, notes, song.groups[seg.group_id].style)
+            controls: dict[int, int] = {}
+            for pos, e in mix:  # i valori in vigore all'inizio della sezione (l'ultimo che arriva fin lì)
+                if pos > start:
+                    break
+                controls[e.number] = e.value
+            part.patterns[seg.label] = Pattern(seg.length, notes, song.groups[seg.group_id].style, controls)
             sections[seg.label] = max(sections.get(seg.label, seg.length), seg.length)
         parts.append(part)
     return StyleData(path, parts, sections)

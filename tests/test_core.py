@@ -506,3 +506,19 @@ def test_paste_segments_from_another_song():
     doc2.execute(AddSegments(items))
     assert all(sg.clone_of is None for _t, sg, _g in items)
     s.close()
+
+
+def test_document_can_undo_and_redo():
+    """Edit > Undo / Redo attivi solo se c'è un passo (2026-11-24)."""
+    from editor.core.document import Document, SetAttribute
+    from editor.core.model import Song, Track
+
+    song = Song()
+    track = Track("T")
+    song.tracks.append(track)
+    doc = Document(song)
+    assert not doc.can_undo and not doc.can_redo
+    doc.execute(SetAttribute(track, "name", "U"))
+    assert doc.can_undo and not doc.can_redo
+    doc.undo()
+    assert not doc.can_undo and doc.can_redo

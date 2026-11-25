@@ -137,6 +137,17 @@ The **Roland FANTOM EX** sound list is included: about 7,200 sounds, expansions 
 ![Output Devices](docs/screenshots/7-output-devices.png)
 
 
+### Set the volumes with a mixer
+
+Open the **mixer** from the toolbar and set the volume of each track by ear, as in a DAW: **Read** to try a volume,
+**Hold** to keep it, **Write** to put it into the song at the start of the bar where the play position is.
+
+Small **V** badges on the ruler show the bars where a volume changes: click one to jump there and open the mixer, with
+the faders of the tracks that change volume lit up.
+
+![The mixer opened from the V badge of bar 9: the Strings fader is lit](docs/screenshots/mixer.jpg)
+
+
 ### Record from your MIDI keyboard
 
 Play on your keyboard and hear it at once with the sound of the selected track; press **Rec** to record, with count-in
@@ -302,11 +313,15 @@ sudo apt install timgm6mb-soundfont     # Ubuntu / Debian, about 6 MB
 
 **By hand, without administrator rights.** Download a SoundFont and copy it into `~/.local/share/soundfonts/`:
 
-| SoundFont | Size | License | Where to get it |
-|---|---|---|---|
-| MuseScore General | about 36 MB (`.sf3`) | MIT | [MuseScore download folder](https://ftp.osuosl.org/pub/musescore/soundfont/MuseScore_General/) |
-| GeneralUser GS | about 30 MB | free, see its license | [author's page](https://schristiancollins.com/generaluser.php) |
-| More free SoundFonts | | | [FluidSynth wiki: SoundFont](https://github.com/FluidSynth/fluidsynth/wiki/SoundFont) |
+| SoundFont            | Size                 | License               | Where to get it                                                                                |
+|----------------------|----------------------|-----------------------|------------------------------------------------------------------------------------------------|
+| Arlecchino GM        | about 47 MB (`.sf3`) | GPL-3                 | [GitHub](https://github.com/badpenguin/arlecchino-soundfonts)                                  |
+| MuseScore General    | about 36 MB (`.sf3`) | MIT                   | [MuseScore download folder](https://ftp.osuosl.org/pub/musescore/soundfont/MuseScore_General/) |
+| GeneralUser GS       | about 30 MB          | free, see its license | [author's page](https://schristiancollins.com/generaluser.php)                                 |
+| More free SoundFonts |                      |                       | [FluidSynth wiki: SoundFont](https://github.com/FluidSynth/fluidsynth/wiki/SoundFont)          |
+
+Arlecchino GM, by the author of Canovaccio, picks each General MIDI instrument by ear from six free SoundFonts
+(Fluid R3, GeneralUser GS, MuseScore, FreePats), with volumes matched for FluidSynth.
 
 Canovaccio looks in `/usr/share/sounds/sf2`, `/usr/share/soundfonts`, `/usr/share/sounds/sf3` and
 `~/.local/share/soundfonts`. You can also pick any SoundFont file in **File › Output Devices…**.
@@ -367,8 +382,10 @@ Notes:
 
 From top to bottom:
 
-- **Menus**: File, Edit, Track, Segment, Grid, Score, Notes, Composer, View, Help. Only the menus that apply to the tab in
-  front are active.
+- **Menus**: File, Edit, Track, Segment, Grid, Score, Notes, Composer, Player, View, Help. Only the menus that apply to
+  the tab in front are active, and inside them only the commands that apply to what is selected. Everything in the
+  toolbar, the right-click menus and the double-clicks is also in the menus: **Player** has the player and recording
+  commands, **Score** the note values and the triplet, **Track** the track properties, Mute, Solo and Preview Chords.
 - **Toolbar**, in palettes:
   - Save, active when there are unsaved changes;
   - player: go to start, Play / Pause (`Space`), Play in loop, Stop, Panic, next segment, position;
@@ -517,12 +534,13 @@ and choose one or more `.sty` or `.stile` files. Here you also set the channel u
 
 ![Chord Editor](docs/screenshots/6b-chord-editor.png)
 
-**4. Generate.** **Generate** in the Chord Editor writes the accompaniment of that segment; **Track › Generate All (style)**
-does it for every chord segment.
+**4. Generate.** **Generate** in the Chord Editor writes the accompaniment of that segment; **Track › Generate Selected
+(style)** (also on right-click) does it for the selected chord segments, **Track › Generate All (style)** for every one.
 
 The result goes into the **"Style · …"** tracks (one for each part: drums, bass, chords, pad, phrase), with a segment for
-each chord segment, labelled like "Main A + Fill In AA". These are normal tracks: change instruments, edit notes,
-or **File › Save as MIDI…** to get a MIDI file of the whole arrangement.
+each chord segment, labelled like "Main A + Fill In AA". They get the style's volume, pan, reverb and chorus of each
+part. These are normal tracks: change instruments, edit notes, or **File › Save as MIDI…** to get a MIDI file of the
+whole arrangement.
 
 
 Generating again replaces only what is in that stretch of the "Style · …" tracks. `Ctrl+Z` undoes it in one step.
@@ -560,6 +578,35 @@ The **Output** menu next to the player chooses the output in use, even during Pl
 
 Environment variables, used when the built-in synth is set to "Automatic": `CANOVACCIO_SF2` (SoundFont file) and
 `CANOVACCIO_AUDIO_DRIVER` (FluidSynth audio driver).
+
+
+### Mixer
+
+**View › Mixer…** (`F9`, or the mixer button in the toolbar) opens the mixer: one LED fader for each track, with its Mute
+and Solo. Each track has three modes, as in most DAWs:
+
+- **R (Read)**: the fader follows the volume written in the song. Drag it to hear the track louder or softer at once;
+  the next volume change in the song takes over again. Nothing is written.
+- **H (Hold)**: the fader keeps its volume and the song's volume changes on that track are ignored. Nothing is written.
+- **W (Write)**: dragging the fader writes the volume at the start of the bar where the play position is (also when
+  stopped). While the song plays, every bar you pass while dragging gets the value of that moment. `Ctrl+Z` undoes it.
+  Where the track has no segment yet, a one-bar **Volume** segment is created to hold the volume change.
+  If you tried a volume in R (or kept one in H), pressing W writes it at once.
+
+![The mixer at bar 9, opened from the V badge on the ruler](docs/screenshots/mixer.jpg)
+
+The LEDs of a fader light up in color when that track has a volume change at the start of the current bar, and
+stay grey otherwise. The **×** under a track deletes that volume change (and the Volume segment, when nothing else
+is left in it). **Play/Pause** (or `Space`) works from the mixer too, and next to it you see the bar where Write and × act.
+**Close** ends Hold and the tries.
+
+The mixer writes volume changes only at the start of a bar. In a clone a change applies to all its copies, as for notes.
+Styles are never changed: the volume of a style part stays in the style.
+
+A small colored **V** badge at the bottom of the ruler in the Tracks tab, right after the start of a bar, marks a volume
+change on the first beat of that bar. Click it to move the play position there and open the mixer.
+
+Volume changes in the middle of a bar are listed in the Event Editor: choose **Show › Volume**.
 
 
 ### A different sound for a track
@@ -671,6 +718,7 @@ On macOS, use `Cmd` instead of `Ctrl`.
 |---|---|
 | `Space` | Play / Pause |
 | `F2` … `F7` | Select, Create, Move, Split, Resize, Delete |
+| `F9` | Mixer |
 | `G` / `E` (`Enter`) | open the grid / notation of the selected segments |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | Undo / Redo |
 | `Ctrl+X` / `Ctrl+C` / `Ctrl+V` | Cut / Copy / Paste (segments: Paste creates clones) |

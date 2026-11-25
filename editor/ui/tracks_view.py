@@ -48,6 +48,7 @@ from ..core.document import (  # noqa: E402
     AddSegments, AddTrack, Compound, DeleteSegments, DeleteTrack, Document, MoveSegments, MoveTrack,
     ResizeSegment, SplitSegment, UnlinkSegments,
 )
+from ..core.mixer import volume_bars  # noqa: E402
 from ..core.model import Group  # noqa: E402
 from ..core.key import MAJOR, Key  # noqa: E402
 from ..core.model import Segment, Track, new_id, remap_slurs  # noqa: E402
@@ -67,6 +68,12 @@ LABEL_TOP = 3  # distanza (px) del testo dell'etichetta dal bordo alto della cor
 LABEL_HALO_PX = 1.5  # spessore (px) dell'alone attorno alle lettere dell'etichetta
 LISTEN_SIZE = 22  # px dei pulsanti Mute / Solo (CSS .listen-toggle in app.py)
 GAP = 10  # px fra nome e corsia (nel righello è la maniglia per ridimensionare)
+# 2026-11-24: linea fra la colonna dei nomi e le corsie: nel righello (maniglia) e, sopra l'elenco,
+# per tutta l'altezza delle tracce (richiesta dell'utente: da sola nel righello sembrava un "|" sbagliato)
+# 2026-11-24: la linea sull'elenco più chiara (non tutta è trascinabile), la maniglia nel righello più scura
+# e larga 2 px, così si riconosce come presa (richiesta dell'utente)
+SEPARATOR_RGBA = (0.5, 0.5, 0.5, 0.3)
+HANDLE_RGBA = (0.35, 0.35, 0.35, 0.9)
 DEFAULT_PX_PER_WHOLE = 64.0  # 4/4 → 64 px per misura
 ZOOM_STEP = 1.25
 
@@ -107,6 +114,13 @@ class TracksView(Gtk.Box):
         self._paste_fail_timer = 0
         self._band: tuple[float, float, float, float] | None = None  # rettangolo di selezione (coord. elenco)
         self._band_add = False
+        # chiamata a ogni cambio di selezione (MainWindow: voci del menu Segment attive o nascoste)
+        self.on_selection: Callable[[], None] = lambda: None
+        # 2026-11-24: chiamata a ogni cambio di Mute / Solo / Preview (MainWindow: spunte del menu Track)
+        self.on_listen: Callable[[], None] = lambda: None
+        # 2026-11-24: click sulla "V" del righello (CC7 sul primo movimento della misura): la finestra dei volumi;
+        # 2026-11-25: il play va su quella misura e si apre il mixer
+        self.on_bar_volumes: Callable[[int], None] = lambda _bar: None
         self.selection: list[tuple[Track, Segment]] = []  # segmenti selezionati, in ordine di click
         self.doc: Document | None = None
         self.rows: list[TrackRow] = []
@@ -120,6 +134,7 @@ class TracksView(Gtk.Box):
         self.play_pos = 0.0  # posizione del cursore (semibrevi)
         self._last_secs = -1.0
         self._pointer_x = 0.0
+        self._name_drag: tuple[int, float | None] = (0, None)  # trascinamento del bordo dei nomi: (larghezza, x)
 
         # righello fisso: ListBox a parte con lo stesso stile, così resta allineato alle corsie
         self.header = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
@@ -192,6 +207,40 @@ class TracksView(Gtk.Box):
 
     # --- colonna dei nomi ----------------------------------------------------
 
+    def name_handle(self, draw_line: bool) -> Gtk.DrawingArea:
+        """Spazio fra il nome e la corsia (GAP px) che, trascinato, allarga o stringe la colonna dei nomi.
+        Nel righello disegna la linea (draw_line); nelle righe delle tracce la linea è quella sopra
+        l'elenco (_draw_name_separator) e qui c'è solo la presa.
+        2026-11-24: prima solo nel righello; ora per tutta l'altezza della linea (richiesta dell'utente)."""
+        handle = Gtk.DrawingArea(width_request=GAP, tooltip_text="Drag to widen or narrow the name column")
+        handle.set_cursor(Gdk.Cursor.new_from_name("col-resize"))
+        if draw_line:
+            handle.set_draw_func(_draw_grip)
+        drag = Gtk.GestureDrag()
+
+        def view_x(gesture: Gtk.GestureDrag) -> float | None:
+            # coordinate della vista Tracce (ferma), non della maniglia (che si sposta):
+            # usare quelle della maniglia fa "vibrare" la colonna
+            ok, x, y = gesture.get_point(None)
+            point = _translate(handle, self, x, y) if ok else None
+            return point[0] if point else None
+
+        def begin(gesture, _x, _y):
+            # il trascinamento è della maniglia: niente rettangolo di selezione né click sulla riga
+            gesture.set_state(Gtk.EventSequenceState.CLAIMED)
+            self._name_drag = (self.name_width, view_x(gesture))
+
+        def update(gesture, _dx, _dy):
+            x = view_x(gesture)
+            w0, x0 = self._name_drag
+            if x is not None and x0 is not None:
+                self.set_name_width(w0 + (x - x0))
+
+        drag.connect("drag-begin", begin)
+        drag.connect("drag-update", update)
+        handle.add_controller(drag)
+        return handle
+
     def name_spacer(self) -> Gtk.Box:
         box = Gtk.Box(hexpand=False)
         self.register_name_widget(box)
@@ -210,6 +259,7 @@ class TracksView(Gtk.Box):
                 alive.append(w)
         self._name_widgets = alive
         GLib.idle_add(lambda: self.update_hadj() or False)
+        GLib.idle_add(lambda: self.band_area.queue_draw() or False)  # la linea fra nomi e corsie si sposta
 
     # --- documento -------------------------------------------------------
 
@@ -226,6 +276,7 @@ class TracksView(Gtk.Box):
         self.rows = [TrackRow(self, doc, t) for t in doc.song.tracks]
         for r in self.rows:
             self.list.append(r)
+        GLib.idle_add(lambda: self.band_area.queue_draw() or False)  # linea fra nomi e corsie, col righello nuovo
         self.set_mode_cursor(self.get_mode())
         if self.rows:
             self.list.select_row(self.rows[0])
@@ -271,13 +322,29 @@ class TracksView(Gtk.Box):
         self.update_hadj()
         self.redraw_all()
 
+    # --- selezione ----------------------------------------------------------
+
+    @property
+    def selection(self) -> list[tuple[Track, Segment]]:
+        """Segmenti selezionati (traccia, segmento), in ordine di click."""
+        return self._selection
+
+    @selection.setter
+    def selection(self, value: list[tuple[Track, Segment]]) -> None:
+        # 2026-11-24: proprietà invece di attributo, per avvisare la finestra a ogni cambio (menu Segment:
+        # Make Independent solo sui cloni, solo gli editor possibili). Si assegna sempre una lista nuova.
+        self._selection = value
+        self.on_selection()
+
     # --- scala e scorrimento --------------------------------------------
 
     @property
     def pad(self) -> float:
-        """Una battuta vuota prima della misura 1 (px): l'inizio si prende agevolmente."""
+        """Mezza battuta vuota prima della misura 1 (px): l'inizio si prende agevolmente.
+        2026-11-24: prima una battuta intera; dimezzata su richiesta dell'utente (troppo spazio fra la
+        linea della colonna dei nomi e la misura 1)."""
         beat = float(self.doc.song.meters.at(0).beat) if self.doc else 0.25
-        return beat * self.px_per_whole
+        return beat / 2 * self.px_per_whole
 
     def x_of(self, pos: float) -> float:
         return self.pad + pos * self.px_per_whole - self.hadj.get_value()
@@ -349,10 +416,10 @@ class TracksView(Gtk.Box):
                 if self.is_selected(seg):
                     self.selection = [(t, s) for t, s in self.selection if s is not seg]
                 else:
-                    self.selection.append((track, seg))
+                    self.selection = self.selection + [(track, seg)]
         elif add:
             if seg is not None and not self.is_selected(seg):
-                self.selection.append((track, seg))
+                self.selection = self.selection + [(track, seg)]
         else:
             self.selection = [(track, seg)] if seg is not None else []
         self.redraw_all()
@@ -437,7 +504,7 @@ class TracksView(Gtk.Box):
         if add:
             for t, seg in found:
                 if not self.is_selected(seg):
-                    self.selection.append((t, seg))
+                    self.selection = self.selection + [(t, seg)]
         else:
             self.selection = found
         self.redraw_all()
@@ -1162,7 +1229,21 @@ class TracksView(Gtk.Box):
             self.doc.execute(MoveTrack(r["track"], new))  # le righe sono già nell'ordine nuovo
         self._select_track(r["track"])
 
-    def _draw_band(self, _a, cr, _w: int, _h: int) -> None:
+    def _draw_name_separator(self, cr, h: int) -> None:
+        """Linea verticale fra la colonna dei nomi e le corsie, per tutta l'altezza dell'elenco:
+        sotto la maniglia del righello, alla stessa x (segue la larghezza della colonna)."""
+        if self.ruler is None:
+            return
+        handle = self.ruler.handle
+        point = _translate(handle, self.band_area, handle.get_width() // 2, 0)
+        if point is None:
+            return
+        cr.set_source_rgba(*SEPARATOR_RGBA)
+        cr.rectangle(int(point[0]), 0, 1, h)
+        cr.fill()
+
+    def _draw_band(self, _a, cr, _w: int, h: int) -> None:
+        self._draw_name_separator(cr, h)
         self._draw_split_hint(cr)
         self._draw_paste_fail(cr)
         self._draw_create(cr)
@@ -1259,6 +1340,7 @@ class TracksView(Gtk.Box):
             if getattr(r, "preview", None) is not None:
                 r.preview.sync()
             r.update_listen_style()  # sfondo giallo (Solo) o rosso (Mute) della riga
+        self.on_listen()
 
     def selected_track(self) -> Track | None:
         row = self.list.get_selected_row()
@@ -1293,6 +1375,15 @@ def _translate(src: Gtk.Widget, dest: Gtk.Widget, x: float, y: float) -> tuple[f
     return res[0], res[1]
 
 
+def _draw_grip(_area, cr, w: int, h: int) -> None:
+    """Maniglia della colonna dei nomi nel righello: una barra scura larga 2 px, sopra la linea dell'elenco
+    (1 px, a w // 2) più un pixel verso il bordo sinistro della finestra, non verso il righello.
+    2026-11-24: prima due linee separate; l'utente voleva una sola barra più larga."""
+    cr.set_source_rgba(*HANDLE_RGBA)
+    cr.rectangle(w // 2 - 1, 0, 2, h)
+    cr.fill()
+
+
 class RulerRow(Gtk.ListBoxRow):
     """Righello con i numeri di misura, allineato alle corsie dei segmenti."""
 
@@ -1308,37 +1399,20 @@ class RulerRow(Gtk.ListBoxRow):
         self.leds.append(Gtk.Box(width_request=LISTEN_SIZE))  # al posto della S
         spacer.append(self.leds)
         box.append(spacer)
-        # maniglia: trascinando si allarga/stringe la colonna dei nomi
-        handle = Gtk.DrawingArea(width_request=GAP, tooltip_text="Drag to widen or narrow the name column")
-        handle.set_cursor(Gdk.Cursor.new_from_name("col-resize"))
-        handle.set_draw_func(lambda _a, cr, w, h: (cr.set_source_rgba(0.5, 0.5, 0.5, 0.6), cr.rectangle(w // 2, 2, 1, h - 4), cr.fill()))
-        drag = Gtk.GestureDrag()
-
-        def view_x(gesture: Gtk.GestureDrag) -> float | None:
-            # coordinate della vista Tracce (ferma), non della maniglia (che si sposta):
-            # usare quelle della maniglia fa "vibrare" la colonna
-            ok, x, y = gesture.get_point(None)
-            point = _translate(handle, view, x, y) if ok else None
-            return point[0] if point else None
-
-        def begin(gesture, _x, _y):
-            self._w0, self._x0 = view.name_width, view_x(gesture)
-
-        def update(gesture, _dx, _dy):
-            x = view_x(gesture)
-            if x is not None and self._x0 is not None:
-                view.set_name_width(self._w0 + (x - self._x0))
-
-        drag.connect("drag-begin", begin)
-        drag.connect("drag-update", update)
-        handle.add_controller(drag)
-        box.append(handle)
+        # maniglia: trascinando si allarga/stringe la colonna dei nomi; alta quanto il righello,
+        # continua nella linea disegnata sopra l'elenco (_draw_name_separator)
+        self.handle = view.name_handle(draw_line=True)
+        box.append(self.handle)
         self.area = Gtk.DrawingArea(hexpand=True, content_height=ruler.RULER_H)
         self.area.set_draw_func(self.draw)
-        self.area.set_tooltip_text("Click: move the play position")
+        self.area.set_has_tooltip(True)
+        self.area.connect("query-tooltip", self._tooltip)
         self.area.connect("resize", lambda *_: view.update_hadj())
+        self.marks: list[tuple[int, float, float, float, float]] = []  # "V" disegnate: (misura, x, y, w, h)
+        self._marks_version = None  # (documento, versione) di cui sono le misure con la "V"
+        self._mark_bars: set[int] = set()
         click = Gtk.GestureClick()
-        click.connect("pressed", lambda _g, _n, x, _y: view.seek_x(x))
+        click.connect("pressed", self._pressed)
         self.area.add_controller(click)
         view.add_scroll_controllers(self.area)
         box.append(self.area)
@@ -1349,8 +1423,41 @@ class RulerRow(Gtk.ListBoxRow):
         first = max(bisect_right(v.bar_x, v.pos_of(0)) - 1, 0)
         last = min(bisect_right(v.bar_x, v.pos_of(w)) + 1, song.bar_count)
         x0 = max(v.x_of(0.0), 0.0)  # la battuta vuota prima della misura 1 resta non disegnata
-        ruler.draw_ruler(cr, x0, 0, w - x0, h, song, first, last, lambda p: v.x_of(float(p)), is_dark(self.area))
+        # stanghetta di chiusura solo se si arriva alla fine del brano (last è anche il limite della vista)
+        version = (id(self.doc), self.doc.version)
+        if version != self._marks_version:  # le misure con la "V" si ricalcolano solo se il brano è cambiato
+            self._marks_version, self._mark_bars = version, volume_bars(song)
+        self.marks = ruler.draw_ruler(cr, x0, 0, w - x0, h, song, first, last, lambda p: v.x_of(float(p)),
+                                      is_dark(self.area), end_line=last == song.bar_count, marks=self._mark_bars,
+                                      mark_rgb=_selected_rgb(self.area))
         v.draw_playhead(cr, h)
+
+    def mark_at(self, x: float, y: float) -> int | None:
+        """Misura della "V" sotto il mouse (con un pixel di tolleranza), o None."""
+        for bar, mx, my, mw, mh in self.marks:
+            if mx - 1 <= x <= mx + mw + 1 and my - 1 <= y <= my + mh + 1:
+                return bar
+        return None
+
+    def _pressed(self, _g, _n: int, x: float, y: float) -> None:
+        """Click: sulla "V" porta il play all'inizio di quella misura e apre il mixer; altrove sposta il punto di play."""
+        bar = self.mark_at(x, y)
+        if bar is not None:
+            self.view.on_bar_volumes(bar)
+        else:
+            self.view.seek_x(x)
+
+    def _tooltip(self, _w, x: int, y: int, _keyboard: bool, tooltip: Gtk.Tooltip) -> bool:
+        bar = self.mark_at(x, y)
+        tooltip.set_text(f"Volume changes at the start of bar {bar + 1}: click to see them in the mixer" if bar is not None
+                         else "Click: move the play position")
+        return True
+
+
+def _selected_rgb(widget: Gtk.Widget) -> tuple[float, float, float]:
+    """Colore di selezione del tema GTK (fondo della "V" nel righello); blu se il tema non lo dichiara."""
+    ok, color = widget.get_style_context().lookup_color("theme_selected_bg_color")
+    return (color.red, color.green, color.blue) if ok else (0.21, 0.52, 0.89)
 
 
 class ListenToggle(Gtk.ToggleButton):
@@ -1403,7 +1510,7 @@ class TrackRow(Gtk.ListBoxRow):
             name_column.append(self.preview)
             self.name.set_tooltip_text("Chord track: double-click a segment to open the Chord Editor")
         box.append(name_column)
-        box.append(Gtk.Box(width_request=GAP))
+        box.append(view.name_handle(draw_line=False))  # anche qui si trascina il bordo della colonna dei nomi
 
         self.lane = Gtk.DrawingArea(hexpand=True, content_height=34)
         self.lane.set_draw_func(self.draw_lane)
@@ -1462,7 +1569,7 @@ class TrackRow(Gtk.ListBoxRow):
     LANE_HELP = ("Click: select and move the play position · Shift+click: add to/remove from selection · "
                  "Drag: selection rectangle · Double-click: score")
 
-    def _lane_tooltip(self, _w, x: int, _y: int, _keyboard: bool, tooltip: Gtk.Tooltip) -> bool:
+    def _lane_tooltip(self, _w, x: int, y: int, _keyboard: bool, tooltip: Gtk.Tooltip) -> bool:
         seg = self.view.segment_at(self.track, x)
         text = self.doc.song.display_label(seg) if seg is not None else ""
         tooltip.set_text(text or self.LANE_HELP)
@@ -1653,3 +1760,4 @@ class TrackRow(Gtk.ListBoxRow):
             cr.move_to(left, LABEL_TOP)
             cr.set_source_rgb(fg.red, fg.green, fg.blue)
             PangoCairo.show_layout(cr, layout)
+
